@@ -18,12 +18,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     ccmdconventer.cpp \
     cmainwindow.cpp \
+    cmpdelementwidget.cpp \
+    cmpdwidget.cpp \
     cserialport.cpp \
     main.cpp
 
 HEADERS += \
     ccmdconventer.h \
     cmainwindow.h \
+    cmpdelementwidget.h \
+    cmpdwidget.h \
     cserialport.h \
     ssettings.h
 

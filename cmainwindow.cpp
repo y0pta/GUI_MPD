@@ -7,7 +7,7 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
     updateAvaliablePorts(CSerialPort::getAvaliable());
     connect(&m_serial, &CSerialPort::s_avaliablePortsChanged, this,
             &CMainWindow::updateAvaliablePorts);
-    setView(eStartPage);
+    setView(eMainPage);
 }
 
 CMainWindow::~CMainWindow()
@@ -23,12 +23,12 @@ void CMainWindow::setView(EPage page)
 
     if (page == eMainPage) {
         ui->gb_start->setVisible(false);
-        ui->gb_model->setVisible(true);
+        ui->gb_mpdModel->setVisible(true);
         ui->pb_finishConfigure->setVisible(true);
     }
     if (page == eStartPage) {
         ui->gb_start->setVisible(true);
-        ui->gb_model->setVisible(false);
+        ui->gb_mpdModel->setVisible(false);
         ui->pb_finishConfigure->setVisible(false);
     }
 }
@@ -51,10 +51,6 @@ void CMainWindow::setView(EMode mode)
     ui->lb_status->setVisible(true);
 
     ui->pb_finishConfigure->setVisible(false);
-    ui->pb_mpd->setVisible(false);
-    ui->pb_radio->setVisible(false);
-    ui->pb_rs232->setVisible(false);
-    ui->pb_rs485->setVisible(false);
 
     ui->lb_baudRate;
     ui->lb_dataBits;
@@ -75,7 +71,6 @@ void CMainWindow::updateAvaliablePorts(QList<QString> portNames)
 
 void CMainWindow::on_pb_radio_clicked()
 {
-
     ui->gb_settings->setVisible(true);
 }
 
