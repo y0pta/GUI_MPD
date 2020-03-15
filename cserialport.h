@@ -5,6 +5,7 @@
 #include <QSerialPort>
 #include <QTimer>
 #include <QObject>
+#include <ssettings.h>
 
 class CSerialPort : public QObject
 {
@@ -20,7 +21,7 @@ public slots:
     QByteArray readyRead();
 
 signals:
-    void s_readyRead(QByteArray);
+    void s_readyRead();
     void s_error(QString);
     void s_disconnected();
     void s_connected();
@@ -30,7 +31,10 @@ public:
     // opens port with default settings (115200 8n1)
     bool openDefault(QString name);
     bool close();
-    void sendData(QByteArray data);
+    void sendData(const SSettings &data);
+    void sendData(const QByteArray &data);
+    QList<SSettings> readAllSettings();
+    QByteArray readAllRaw();
 
 private:
     void checkAvaliablePorts();

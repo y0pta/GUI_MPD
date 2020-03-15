@@ -14,10 +14,11 @@ void CMpdElementWidget::_resetView(QString text)
 
 void CMpdElementWidget::menuAction(QAction *act)
 {
-    if (m_state == eDisconnected) {
-        setState(eConnected);
+    Q_UNUSED(act);
+    if (m_state == EState::eConnected) {
+        emit s_wantChangeState(EState::eDisconnected);
     } else {
-        setState(eDisconnected);
+        emit s_wantChangeState(EState::eConnected);
     }
 }
 
@@ -28,15 +29,15 @@ void CMpdElementWidget::setState(EState st, bool active)
     //Меняем фон
     QString style_str;
     switch (st) {
-    case eConnected:
+    case EState::eConnected:
         style_str = "QPushButton { background-color: #74E868; ";
         m_menu.addAction("Отсоединить");
         break;
-    case eDisconnected:
+    case EState::eDisconnected:
         style_str = "QPushButton { background-color: #555555; ";
         m_menu.addAction("Подсоединить");
         break;
-    case eError:
+    case EState::eError:
         style_str = "QPushButton { background-color: #FD7279; ";
         m_menu.addAction("Подсоединить");
         break;
@@ -60,15 +61,14 @@ void CMpdElementWidget::setEnabled(bool en)
 {
     enabled = en;
     if (!en)
-        setState(eDisconnected);
+        setState(EState::eDisconnected);
 }
 
 void CMpdElementWidget::mousePressEvent(QMouseEvent *e)
 {
     if (enabled) {
-        // если нажали правую клавишу, показваем меню
+        // если нажали правую клавишу, показываем меню
         if (e->button() == Qt::RightButton) {
-            auto pos = e->globalPos();
             m_menu.popup(e->globalPos());
         }
         // если нажали на левую клавишу, сигнализируем
@@ -80,11 +80,13 @@ void CMpdElementWidget::mousePressEvent(QMouseEvent *e)
 
 void CMpdElementWidget::enterEvent(QEvent *event)
 {
+    Q_UNUSED(event);
     if (enabled)
         setState(m_state, true);
 }
 void CMpdElementWidget::leaveEvent(QEvent *event)
 {
+    Q_UNUSED(event);
     if (enabled)
         setState(m_state, false);
 }

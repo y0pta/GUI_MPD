@@ -4,15 +4,14 @@
 #include <QPushButton>
 #include <QMenu>
 #include <QMouseEvent>
+#include <ssettings.h>
 
 // Класс элемента модели МПД (немного измененная кнопка)
 
 class CMpdElementWidget : public QPushButton
 {
     Q_OBJECT
-    // Возможные состояния
-    enum EState { eConnected, eDisconnected, eError };
-
+public:
 public:
     CMpdElementWidget(QWidget *pwgt = 0) : QPushButton(pwgt) { _resetView(); }
     CMpdElementWidget(QString text, QWidget *pwgt = 0);
@@ -26,6 +25,7 @@ public slots:
 
 signals:
     void s_clicked();
+    void s_wantChangeState(EState st);
 
 protected:
     virtual void mousePressEvent(QMouseEvent *e) override;
@@ -38,7 +38,7 @@ private:
 
 private:
     QMenu m_menu;
-    EState m_state { eDisconnected };
+    EState m_state { EState::eDisconnected };
     bool enabled { true };
 };
 
