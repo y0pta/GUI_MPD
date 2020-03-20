@@ -5,9 +5,9 @@ void testRequestSettings()
 {
     QFile file("/home/liza/test");
     file.open(QIODevice::WriteOnly);
-    CCmdTransmitter::requestSettings(file, ESettingsType::eSerial,
+    CCmdTransmitter::requestSettings(&file, ESettingsType::eSerial,
                                      QPair<QString, QString>("iface", "RS-232"));
-    CCmdTransmitter::requestSettings(file, ESettingsType::eCommon);
+    CCmdTransmitter::requestSettings(&file, ESettingsType::eCommon);
     file.close();
 }
 
@@ -22,8 +22,8 @@ void testWriteSettings()
     sett.fields[SERIAL_IFACE] = SERIAL_IFACE_RADIO;
     sett.fields[SERIAL_PARITY] = "odd";
     sett.fields[SERIAL_BAUDRATE] = "115200";
-    CCmdTransmitter::sendSettings(file, gsett);
-    CCmdTransmitter::sendSettings(file, sett);
+    CCmdTransmitter::sendSettings(&file, gsett);
+    CCmdTransmitter::sendSettings(&file, sett);
     file.close();
 }
 
@@ -46,6 +46,6 @@ void testReadSettings()
                "mode: sms\n[end]");
     file.close();
     file.open(QIODevice::ReadOnly);
-    auto res = cmd.readSettings(file);
+    auto res = cmd.readSettings(&file);
     file.close();
 }

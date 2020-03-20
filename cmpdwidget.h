@@ -19,8 +19,12 @@ public:
     void setMainTextName(const QString &name);
     // меняет статус элемента
     void changeState(QString nameEl, EState st);
-
-    void setEnabled(bool state);
+    //устанавнивает элемент в state. Если элемент не укзан, то устанавливает весь виджет
+    void setEnabled(bool state, QString nameEl = "");
+    //замораживает все элементы, кроме nameEl
+    void freezeExcept(QString nameEl = "");
+    //замораживает все элементы
+    void unfreezeAll();
 
 public slots:
     // обработчик нажатия на элемент

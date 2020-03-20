@@ -2,7 +2,7 @@
 #define SSETTINGS_H
 #include <QSerialPort>
 #include <QMap>
-enum EState { eConnected, eDisconnected, eError };
+enum EState { eConnected, eDisconnected, eError, eDisabled };
 
 enum ESettingsType { eNoSection = -1, eSerial, eCommon };
 const QMap<ESettingsType, QString> SETTINGS_TYPES = {
@@ -46,6 +46,19 @@ struct SSettingsSerial : public SSettings {
         fields = { { SERIAL_IFACE, "" },      { SERIAL_STATUS, "" },        { SERIAL_BAUDRATE, "" },
                    { SERIAL_DATABITS, "" },   { SERIAL_PARITY, "" },        { SERIAL_STOPBITS, "" },
                    { SERIAL_WRITEDELAY, "" }, { SERIAL_WAITPACKETTIME, "" } };
+    }
+    static SSettingsSerial getSerialDefault(QString ifaceName = QString())
+    {
+        SSettingsSerial sett;
+        sett.fields[SERIAL_IFACE] = ifaceName;
+        sett.fields[SERIAL_STATUS] = "on";
+        sett.fields[SERIAL_BAUDRATE] = "115200";
+        sett.fields[SERIAL_DATABITS] = "8";
+        sett.fields[SERIAL_PARITY] = "no";
+        sett.fields[SERIAL_STOPBITS] = "1";
+        sett.fields[SERIAL_WRITEDELAY] = "200";
+        sett.fields[SERIAL_WAITPACKETTIME] = "200";
+        return sett;
     }
 };
 

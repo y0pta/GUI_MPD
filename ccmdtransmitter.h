@@ -10,11 +10,12 @@ public:
     CCmdTransmitter() {}
     ~CCmdTransmitter() {}
 
-    static QList<SSettings> readSettings(QIODevice &dev);
-    static void sendSettings(QIODevice &dev, const SSettings &sett);
+    static QList<SSettings> readSettings(QIODevice *dev);
+    static void sendSettings(QIODevice *dev, const SSettings &sett);
     static void
-    requestSettings(QIODevice &dev, ESettingsType type,
+    requestSettings(QIODevice *dev, ESettingsType type,
                     const QPair<QString, QString> &parameter = QPair<QString, QString>());
+    static bool isConfirmation(SSettings);
 
 protected:
     template<typename SSettingsClass>
@@ -22,7 +23,7 @@ protected:
 
 private:
     static ESettingsType readNextSectionType(const QByteArray &data);
-    static SSettings readNextSettings(QIODevice &dev);
+    static SSettings readNextSettings(QIODevice *dev);
 };
 
 // class CCmdTransmitter

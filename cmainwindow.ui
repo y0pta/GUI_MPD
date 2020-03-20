@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>615</width>
-    <height>632</height>
+    <width>608</width>
+    <height>663</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,7 +21,7 @@
     <property name="geometry">
      <rect>
       <x>50</x>
-      <y>280</y>
+      <y>300</y>
       <width>501</width>
       <height>291</height>
      </rect>
@@ -32,8 +32,8 @@
     <widget class="QWidget" name="formLayoutWidget">
      <property name="geometry">
       <rect>
-       <x>30</x>
-       <y>40</y>
+       <x>60</x>
+       <y>60</y>
        <width>387</width>
        <height>191</height>
       </rect>
@@ -50,17 +50,17 @@
        <widget class="QComboBox" name="cb_baudRate">
         <item>
          <property name="text">
-          <string>115 200</string>
+          <string>115200</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>9 600</string>
+          <string>9600</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>1 200</string>
+          <string>1200</string>
          </property>
         </item>
        </widget>
@@ -104,7 +104,7 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QComboBox" name="cb_stopBits">
+       <widget class="QComboBox" name="cb_parity">
         <item>
          <property name="text">
           <string>no</string>
@@ -120,16 +120,6 @@
           <string>odd</string>
          </property>
         </item>
-        <item>
-         <property name="text">
-          <string>space</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>mark</string>
-         </property>
-        </item>
        </widget>
       </item>
       <item row="3" column="0">
@@ -140,7 +130,7 @@
        </widget>
       </item>
       <item row="3" column="1">
-       <widget class="QComboBox" name="cb_parity">
+       <widget class="QComboBox" name="cb_stopBits">
         <item>
          <property name="text">
           <string>1 bit</string>
@@ -183,8 +173,8 @@
     <widget class="QPushButton" name="pb_cancel">
      <property name="geometry">
       <rect>
-       <x>250</x>
-       <y>250</y>
+       <x>300</x>
+       <y>260</y>
        <width>91</width>
        <height>25</height>
       </rect>
@@ -196,8 +186,8 @@
     <widget class="QPushButton" name="pb_accept">
      <property name="geometry">
       <rect>
-       <x>110</x>
-       <y>250</y>
+       <x>150</x>
+       <y>260</y>
        <width>89</width>
        <height>25</height>
       </rect>
@@ -209,8 +199,8 @@
     <widget class="QPushButton" name="pb_edit">
      <property name="geometry">
       <rect>
-       <x>180</x>
-       <y>250</y>
+       <x>220</x>
+       <y>260</y>
        <width>89</width>
        <height>25</height>
       </rect>
@@ -239,13 +229,35 @@
        <normaloff>close-window.png</normaloff>close-window.png</iconset>
      </property>
     </widget>
+    <widget class="QLabel" name="lb_ifaceName">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>30</y>
+       <width>491</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
    </widget>
    <widget class="QLabel" name="lb_status">
     <property name="geometry">
      <rect>
-      <x>260</x>
-      <y>570</y>
-      <width>44</width>
+      <x>180</x>
+      <y>590</y>
+      <width>291</width>
       <height>25</height>
      </rect>
     </property>
@@ -256,8 +268,8 @@
    <widget class="QPushButton" name="pb_finishConfigure">
     <property name="geometry">
      <rect>
-      <x>410</x>
-      <y>0</y>
+      <x>400</x>
+      <y>10</y>
       <width>201</width>
       <height>25</height>
      </rect>
@@ -337,9 +349,9 @@
     <property name="geometry">
      <rect>
       <x>50</x>
-      <y>19</y>
+      <y>50</y>
       <width>500</width>
-      <height>251</height>
+      <height>231</height>
      </rect>
     </property>
     <property name="minimumSize">
@@ -363,9 +375,9 @@
     <widget class="CMpdWidget" name="wgt_model" native="true">
      <property name="geometry">
       <rect>
-       <x>70</x>
-       <y>40</y>
-       <width>350</width>
+       <x>89</x>
+       <y>20</y>
+       <width>331</width>
        <height>180</height>
       </rect>
      </property>
@@ -380,8 +392,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>615</width>
-     <height>22</height>
+     <width>608</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

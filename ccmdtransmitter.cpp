@@ -1,6 +1,6 @@
 #include "ccmdtransmitter.h"
 
-QList<SSettings> CCmdTransmitter::readSettings(QIODevice &dev)
+QList<SSettings> CCmdTransmitter::readSettings(QIODevice *dev)
 {
     QList<SSettings> res;
     SSettings temp;
@@ -12,13 +12,13 @@ QList<SSettings> CCmdTransmitter::readSettings(QIODevice &dev)
     return res;
 }
 
-SSettings CCmdTransmitter::readNextSettings(QIODevice &dev)
+SSettings CCmdTransmitter::readNextSettings(QIODevice *dev)
 {
     SSettings res;
     SSettingsSerial settSerial;
     SCommonSettings settCommon;
 
-    QByteArray data = dev.peek(dev.size());
+    QByteArray data = dev->peek(dev->size());
     //выясняем,какой тип настроек следующий и есть ли там вообще настройки
     ESettingsType nextType = readNextSectionType(data);
     //настроек не оказалось
@@ -29,7 +29,7 @@ SSettings CCmdTransmitter::readNextSettings(QIODevice &dev)
     //[end])
     int posBegin = data.indexOf(getTypeStr(nextType)) + getTypeStr(nextType).size();
     int posEnd = data.indexOf(SETTINGS_INTERRUPTOR, posBegin);
-    QByteArray settData = dev.read(posEnd + SETTINGS_INTERRUPTOR.size());
+    QByteArray settData = dev->read(posEnd + SETTINGS_INTERRUPTOR.size());
     settData.remove(0, posBegin);
 
     switch (nextType) {
@@ -87,12 +87,12 @@ ESettingsType CCmdTransmitter::readNextSectionType(const QByteArray &data)
     return ESettingsType::eNoSection;
 }
 
-void CCmdTransmitter::requestSettings(QIODevice &dev, ESettingsType type,
+void CCmdTransmitter::requestSettings(QIODevice *dev, ESettingsType type,
                                       const QPair<QString, QString> &parameter)
 {
     QString str;
     str += SETTINGS_REQUEST;
-    str += "\n";
+    str += "\ntype: ";
     QString strType = getTypeStr(type);
     strType.replace("[", "");
     strType.replace("]", "");
@@ -103,10 +103,19 @@ void CCmdTransmitter::requestSettings(QIODevice &dev, ESettingsType type,
     }
     str += SETTINGS_INTERRUPTOR;
     str += "\n";
-    dev.write(str.toStdString().c_str());
+    dev->write(str.toStdString().c_str());
 }
 
-void CCmdTransmitter::sendSettings(QIODevice &dev, const SSettings &sett)
+bool CCmdTransmitter::isConfirmation(SSettings sett)
+{
+    for (auto field : sett.fields) {
+        if (field == "ok" || field.contains("<"))
+            return true;
+    }
+    return false;
+}
+
+void CCmdTransmitter::sendSettings(QIODevice *dev, const SSettings &sett)
 {
     QString str;
     str += getTypeStr(sett.getType());
@@ -115,105 +124,5 @@ void CCmdTransmitter::sendSettings(QIODevice &dev, const SSettings &sett)
         if (!it.value().isEmpty())
             str = str + it.key() + ": " + it.value() + "\n";
     }
-    dev.write(str.toStdString().c_str());
+    dev->write(str.toStdString().c_str());
 }
-////находит и возвращает имя первой секции в буфере устройства, если имя секции существует и
-////завершается sectionIntterrupter ([end]). Если секции с таким именем нет или нет
-//// SECTION_INTERRUPTOR возвращает ESettingsType::eUnknown
-// ESettingsType CCmdTransmitter::getNextSectionType(QIODevice &dev)
-//{
-//    QByteArray data = dev.peek(dev.size());
-//    QString nameSection;
-
-//    // удостоверимся, что есть SECTION_INTERRUPTOR
-//    int posInterruptor = data.indexOf(SECTION_INTERRUPTOR);
-//    if (posInterruptor == -1)
-//        return ESettingsType::eUnknown;
-
-//    int i = 0;
-//    // ищем имя секции, зная, что оно заключено в []
-//    while (i < posInterruptor) {
-//        int posBegin = data.indexOf('[', i);
-//        int posEnd = data.indexOf(']', i);
-//        // вхождение секции не найдено
-//        if (posBegin == -1 || posEnd == -1)
-//            return ESettingsType::eUnknown;
-//        if (posEnd > posBegin) {
-//            nameSection = data.mid(posBegin, posEnd - posBegin + 1);
-//            i = posInterruptor;
-//        } else {
-//            i = posEnd + 1;
-//        }
-//    }
-//    // проверяем, что такая секция есть
-//    for (auto it = sectionTypes.begin(); it != sectionTypes.end(); it++) {
-//        if (it.value() == nameSection)
-//            return it.key();
-//    }
-//    return ESettingsType::eUnknown;
-//}
-
-// SSettingsSerial &CCmdTransmitter::getSettings(QIODevice &dev, SSettingsSerial &sett)
-//{
-//    QByteArray data = dev.peek(dev.size());
-//    int posBegin = data.indexOf(sectionTypes[ESettingsType::eSerial])
-//            + sectionTypes[ESettingsType::eSerial].size();
-//    int posEnd = data.indexOf(SECTION_INTERRUPTOR);
-//    QByteArray settStr = dev.read(posEnd + SECTION_INTERRUPTOR.size());
-//    //отрезаем часть с настройками
-//    settStr = settStr.mid(posBegin, posEnd);
-
-//    auto strings = settStr.split('\n');
-//    for ()
-//}
-
-// SCommonSettings &CCmdTransmitter::getSettings(QIODevice &dev, SCommonSettings &sett) {}
-
-// void CCmdTransmitter::sendSettings(QIODevice &dev, const SSettingsSerial &sett)
-//{
-//    QString str = sectionTypes[ESettingsType::eSerial] + "\n";
-
-//    if (sett.iface == EIface::eUndefined)
-//        return;
-//    str += "iface: " + ifaces[sett.iface] + "\n";
-
-//    if (sett.enabled) {
-//        str += "status: on\n";
-//        str = str + "baudRate: " + QString::number(sett.baudRate) + "\n";
-//        str = str + "dataBits: " + QString::number(sett.dataBits) + "\n";
-//        if (sett.parity == QSerialPort::NoParity)
-//            str += "parity: no\n";
-//        else if (sett.parity == QSerialPort::EvenParity)
-//            str += "parity: even\n";
-//        else if (sett.parity == QSerialPort::OddParity)
-//            str += "parity: odd\n";
-//        str = str + "stopBits: " + QString::number(sett.stopBits, 'f', 1) + "\n";
-//        if (sett.writeDelay)
-//            str = str + "delay: " + QString::number(sett.writeDelay) + "\n";
-//        if (sett.waitPacketTime)
-//            str = str + "waitTime: " + QString::number(sett.waitPacketTime) + "\n";
-//    } else {
-//        str += "status: off\n";
-//    }
-
-//    str += SECTION_INTERRUPTOR + "\n";
-//    dev.write(str.toStdString().c_str());
-//}
-
-// void CCmdTransmitter::sendSettings(QIODevice &dev, const SCommonSettings &sett)
-//{
-//    QString str = sectionTypes[ESettingsType::eCommon] + "\n";
-//    str += "mode: " + modes[sett.mode] + "\n";
-//    str += SECTION_INTERRUPTOR + "\n";
-//    dev.write(str.toStdString().c_str());
-//}
-
-// void CCmdTransmitter::sendSettingsRequest()
-//{
-//    QString str = "[get]\n";
-//    str += "mode: \n";
-//    str += SECTION_INTERRUPTOR + "\n";
-//    // return str.toStdString().c_str();
-//}
-
-// static QByteArray sendSettings(QIODevice &dev, const SCommonSettings &sett) {}

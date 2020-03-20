@@ -8,6 +8,7 @@ CMpdWidget::CMpdWidget(QWidget *pwgt, const QString &mainName) : QWidget(pwgt)
     m_main = new CMpdElementWidget(this);
     m_main->setText(mainName);
     m_main->setEnabled(false);
+    m_main->setFreeze(true);
 
     _refreshView();
 }
@@ -22,8 +23,8 @@ void CMpdWidget::addElements(uint num, QList<QString> names)
 {
     for (uint i = 0; i < num; i++) {
         QString name = names.value(i);
-        // если не задано имя для данного элемента, используем номер
-        if (name == QString())
+        // если не задано имя для данного элемента, используем в качесте имени номер
+        if (name == "")
             name = QString::number(i);
         m_elements[name] = new CMpdElementWidget(name, this);
         connect(m_elements[name], &CMpdElementWidget::s_clicked, this, &CMpdWidget::elementClicked);
@@ -124,8 +125,11 @@ void CMpdWidget::resizeEvent(QResizeEvent *event) {}
 void CMpdWidget::elementWantChangeState(EState st)
 {
     auto element = qobject_cast<CMpdElementWidget *>(sender());
-    emit s_wantChangeState(m_elements.key(element), st);
-    element->setEnabled(false);
+    QString nameEl = m_elements.key(element);
+    if (st == eConnected) {
+        freezeExcept(nameEl);
+    }
+    emit s_wantChangeState(nameEl, st);
 }
 
 void CMpdWidget::changeState(QString nameEl, EState st)
@@ -134,11 +138,32 @@ void CMpdWidget::changeState(QString nameEl, EState st)
     m_elements[nameEl]->setEnabled(true);
 }
 
-void CMpdWidget::setEnabled(bool state)
+void CMpdWidget::setEnabled(bool state, QString nameEl)
 {
-    // m_main->setEnabled(state);
-    if (m_elements.size() != 0)
+    if (nameEl.isEmpty()) {
         for (auto el : m_elements) {
             el->setEnabled(state);
+            el->setActive(false);
         }
+    } else if (m_elements.count(nameEl))
+        m_elements[nameEl]->setEnabled(state);
+}
+
+void CMpdWidget::freezeExcept(QString nameEl)
+{
+    m_main->setFreeze(true);
+    for (auto it = m_elements.begin(); it != m_elements.end(); it++) {
+        if (it.key() == nameEl)
+            m_elements[nameEl]->setActive(true);
+        it.value()->setFreeze(true);
+    }
+}
+
+void CMpdWidget::unfreezeAll()
+{
+    m_main->setEnabled(false);
+    for (auto el : m_elements) {
+        el->setFreeze(false);
+        el->setActive(false);
+    }
 }
