@@ -39,6 +39,14 @@ private slots:
     void wantChangeStateReceived(QString ifaceName, EState st);
     //! чтение настроек, пришедших с МПД
     void readyRead();
+    //! разбор подтверждений (ответов)
+    void processConfirmation(const SSettings &sett);
+    //! добавление текущих настроек (МПД прислал текущие настройки, нужно их обработать)
+    void setCurrentSetting(const SSettings &sett);
+    //! порт отключили
+    void serialRemoved();
+    //! ошибка в порте
+    void setError(QString errorStr);
 
     void on_pb_finishConfigure_clicked();
 
@@ -48,28 +56,29 @@ private slots:
 
 private:
     ///!устанавливает вид страницы
-    void setView(EPage page);
+    void setPage(EPage page);
     ///! устанавливает вид настроек (только для eMainPage)
     void setMode(ESettingsMode mode);
     ///! обновляет комбо-бокс с доступными портами (только для eStartPage)
+
     void updateAvaliablePorts();
-    ///! заполняет поля настроек для заданного интерфейса
-    void loadSettings(QString nameElement);
+    ///! заполняет поля настроек для заданного интерфейса (берет их из  m_setts)
+    void loadSettingsFields(QString nameElement);
+    ///! Подсвечивает непринятые настройки, обесцвечивает принятые
+    void loadSettingStatus(const QList<QString> &errorFields);
+    ///! добавляет настройку в m_setts или заменяет уже существующую
+    void confirmSetting(const SSettings &sett);
     ///! запрашивает от МПД текущие настройки
     void requestCurrentSettings(ESettingsType type = eNoSection);
-    ///! обновляет текущие настройки в соответствии с ответом МПД
-    void currentSettingsReceived(QList<SSettings> settings);
-    ///! Заполняет настройки
-    void fillSettings(QString nameEl);
 
 private:
     Ui::CMainWindow *ui;
     //!*** Fields for GUI
     ESettingsMode m_mode { eHidden };
     EPage m_page { eStartPage };
-    //! Selected unit
-    SSettings m_current;
+
     QList<SSettings> m_setts;
+    QList<SSettings> m_processingSetts;
 
     //!*** Fields for external connections
     CSerialPort m_serial;

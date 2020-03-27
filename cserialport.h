@@ -29,7 +29,7 @@ signals:
 public:
     // opens port with default settings (115200 8n1)
     bool openDefault(QString name);
-    bool close();
+    void close();
     void sendData(const SSettings &data);
     void sendData(const QByteArray &data);
     void requestData(ESettingsType type,

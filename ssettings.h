@@ -2,6 +2,8 @@
 #define SSETTINGS_H
 #include <QSerialPort>
 #include <QMap>
+
+const char FIELD_NAME[] = "name";
 enum EState { eConnected, eDisconnected, eError, eDisabled };
 
 enum ESettingsType { eNoSection = -1, eSerial, eCommon };
@@ -17,10 +19,36 @@ static QString getTypeStr(ESettingsType type)
 
 const QString SETTINGS_INTERRUPTOR = "[end]";
 const QString SETTINGS_REQUEST = "[get]";
+const QString SETTINGS_CONFIRMED = "<ok>";
+const QString SETTINGS_ERROR = "error";
 
 struct SSettings {
     QMap<QString, QString> fields;
     ESettingsType getType() const { return m_type; }
+    bool isConfirmation() const
+    {
+        for (auto field : fields) {
+            if (field.contains("<") && field.contains(">"))
+                return true;
+        }
+        return false;
+    }
+    QString getErrorsStr() const
+    {
+        if (fields.contains(SETTINGS_ERROR))
+            return fields[SETTINGS_ERROR];
+        else
+            return QString();
+    }
+    QList<QString> getErrorFields() const
+    {
+        QList<QString> res;
+        for (auto it = fields.begin(); it != fields.end(); it++) {
+            if (!it.value().contains(SETTINGS_CONFIRMED))
+                res.push_back(it.key());
+        }
+        return res;
+    }
 
 protected:
     ESettingsType m_type { eNoSection };

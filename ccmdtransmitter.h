@@ -15,7 +15,6 @@ public:
     static void
     requestSettings(QIODevice *dev, ESettingsType type,
                     const QPair<QString, QString> &parameter = QPair<QString, QString>());
-    static bool isConfirmation(SSettings);
 
 protected:
     template<typename SSettingsClass>
@@ -25,26 +24,5 @@ private:
     static ESettingsType readNextSectionType(const QByteArray &data);
     static SSettings readNextSettings(QIODevice *dev);
 };
-
-// class CCmdTransmitter
-//{
-
-// public:
-//    CCmdTransmitter() {}
-//    ~CCmdTransmitter() {}
-//    static ESettingsType getNextSectionType(QIODevice &dev);
-//    SSettingsSerial &getSettings(QIODevice &dev, SSettingsSerial &sett);
-//    SCommonSettings &getSettings(QIODevice &dev, SCommonSettings &sett);
-//    static void sendSettings(QIODevice &dev, const SSettingsSerial &sett);
-//    static void sendSettings(QIODevice &dev, const SCommonSettings &sett);
-//    static void sendSettingsRequest();
-
-//    QString getLastError();
-// signals:
-//    void s_error();
-
-// private:
-//    QString m_error;
-//};
 
 #endif // CCMDCONVENTER_H

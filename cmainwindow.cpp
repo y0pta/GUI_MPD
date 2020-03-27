@@ -5,9 +5,12 @@
 CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMainWindow)
 {
     ui->setupUi(this);
-    setStyleSheet("QMainWindow { background-color: #9C9C9C; }\n QPushButton { background-color: "
-                  "#979797; }\n ");
-    ui->gb_mpdModel->setStyleSheet("QGroupBox {background-color: #A7A7A7; border: solid; }");
+    setStyleSheet(
+            "QMainWindow { background-color: #9C9C9C; }\n QPushButton { background-color: "
+            "#979797; }\n QComboBox { color: white; background-color: #676767}\n QLineEdit { "
+            "background-color: #676767 }\n QMenu {color: white; background-color: #676767}\n");
+    ui->gb_mpdModel->setStyleSheet(
+            "QGroupBox {color: white; background-color: #A7A7A7; border: solid; }");
     //Настраиваем виджет с моделью
     ui->wgt_model->addElements(3, { SERIAL_IFACE_RADIO, SERIAL_IFACE_RS232, SERIAL_IFACE_RS485 });
     auto sett = SSettingsSerial::getSerialDefault(SERIAL_IFACE_RADIO);
@@ -22,7 +25,7 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
 
     updateAvaliablePorts();
     m_page = eMainPage;
-    setView(eMainPage);
+    setPage(eMainPage);
     ui->wgt_model->changeState(SERIAL_IFACE_RADIO, eConnected);
     ui->wgt_model->changeState(SERIAL_IFACE_RS232, eError);
 
@@ -32,6 +35,22 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
     m_serial.requestData(eSerial);
     //    ui->wgt_model->s_clicked("Rs-232");
     //    setMode(ESettingsMode::eViewMode);
+
+    // user data
+    QString str = SERIAL_PARITY;
+
+    ui->lb_parity->setProperty(FIELD_NAME, SERIAL_PARITY.toStdString().c_str());
+    ui->lb_baudRate->setProperty(FIELD_NAME, SERIAL_BAUDRATE.toStdString().c_str());
+    ui->lb_dataBits->setProperty(FIELD_NAME, SERIAL_DATABITS.toStdString().c_str());
+    ui->lb_stopBits->setProperty(FIELD_NAME, SERIAL_STOPBITS.toStdString().c_str());
+    ui->lb_writeDelay->setProperty(FIELD_NAME, SERIAL_WRITEDELAY.toStdString().c_str());
+    ui->lb_waitPacketTime->setProperty(FIELD_NAME, SERIAL_WAITPACKETTIME.toStdString().c_str());
+
+    setMode(eEditMode);
+    sett.fields[SERIAL_BAUDRATE] = "1200";
+    sett.fields[SERIAL_PARITY] = "fgdfg";
+
+    loadSettingStatus({ SERIAL_BAUDRATE, SERIAL_DATABITS });
 }
 
 CMainWindow::~CMainWindow()
@@ -42,12 +61,12 @@ CMainWindow::~CMainWindow()
 void CMainWindow::on_wgt_model_clicked(QString nameEl)
 {
     if (m_mode != eEditMode) {
-        loadSettings(nameEl);
+        loadSettingsFields(nameEl);
         setMode(eViewMode);
     }
 }
 
-void CMainWindow::setView(EPage page)
+void CMainWindow::setPage(EPage page)
 {
     ui->gb_settings->setVisible(false);
     ui->lb_status->setVisible(true);
@@ -101,6 +120,7 @@ void CMainWindow::setMode(ESettingsMode mode)
             setCursor(Qt::WaitCursor);
         } else if (mode == eHidden) {
             ui->gb_settings->setVisible(false);
+            setCursor(Qt::ArrowCursor);
         }
         m_mode = mode;
     }
@@ -137,8 +157,12 @@ void CMainWindow::on_pb_startConfigure_clicked()
 {
     if (!m_serial.openDefault(ui->cb_avaliablePorts->currentText()))
         ui->lb_status->setText("Не удалось открыть порт");
-    else
-        setView(eMainPage);
+    else {
+        connect(&m_serial, &CSerialPort::s_readyRead, this, &CMainWindow::readyRead);
+        connect(&m_serial, &CSerialPort::s_deviceRemoved, this, &CMainWindow::serialRemoved);
+        connect(&m_serial, &CSerialPort::s_error, this, &CMainWindow::setError);
+        setPage(eMainPage);
+    }
 }
 
 void CMainWindow::on_pb_closeSettings_clicked()
@@ -172,22 +196,84 @@ void CMainWindow::on_pb_edit_clicked()
 
 void CMainWindow::wantChangeStateReceived(QString ifaceName, EState st)
 {
-    loadSettings(ifaceName);
+    loadSettingsFields(ifaceName);
     if (st == eConnected) {
         setMode(eEditMode);
     } else if (st == eDisconnected) {
+        SSettingsSerial sett;
+        sett.fields[SERIAL_IFACE] = ifaceName;
+        sett.fields[SERIAL_STATUS] = "off";
+        m_serial.sendData(sett);
+        ui->wgt_model->changeState(ifaceName, eDisconnected);
     }
 }
 
 void CMainWindow::readyRead()
-{ // TODO: сделать обработчик настроек
+{
+    setMode(eViewMode);
+    //читаем все настройки и разбираем их на подтвержения и ответы на запросы
     auto setts = m_serial.readAllSettings();
     for (auto sett : setts) {
-        if (sett.getType() == eCommon) {
-
-        } else if (sett.getType() == eSerial) {
-        }
+        //Если подтверждение
+        if (sett.isConfirmation())
+            processConfirmation(sett);
+        //Если пришли текущие настройки МПД
+        else
+            setCurrentSetting(sett);
     }
+}
+
+void CMainWindow::processConfirmation(const SSettings &sett)
+{
+    auto type = sett.getType();
+    // если есть ошибки, не связанные с конкретной настройкой, выводим в строку
+    setError(sett.getErrorsStr());
+
+    auto listErrorFields = sett.getErrorFields();
+
+    //если нет ошибок, то просто переводим настройку из листа ожидания в основную массу
+    if (listErrorFields.size() < 1) {
+        confirmSetting(sett);
+        return;
+    }
+    // ошибки common и serial рассматриваем отдельно
+    switch (type) {
+    case eCommon:
+        break;
+    case eSerial:
+        loadSettingStatus(listErrorFields);
+        break;
+    default:
+        break;
+    }
+}
+
+void CMainWindow::setCurrentSetting(const SSettings &sett)
+{
+    //ВАЖНО! пока нет обработчика для eCommon
+    //Добавляем или изменяем m_setts
+    for (auto it = m_setts.begin(); it != m_setts.end(); it++) {
+        if (it->fields.contains(SERIAL_IFACE))
+            if (it->fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
+                m_setts.erase(it);
+            }
+    }
+    m_setts.push_back(sett);
+}
+
+void CMainWindow::serialRemoved()
+{
+    m_serial.close();
+    setError("Устройство было извлечено!");
+    setPage(eStartPage);
+    disconnect(&m_serial, &CSerialPort::s_readyRead, this, &CMainWindow::readyRead);
+    disconnect(&m_serial, &CSerialPort::s_deviceRemoved, this, &CMainWindow::serialRemoved);
+    disconnect(&m_serial, &CSerialPort::s_error, this, &CMainWindow::setError);
+}
+
+void CMainWindow::setError(QString errorStr)
+{
+    ui->lb_status->setText(errorStr);
 }
 
 void CMainWindow::on_pb_finishConfigure_clicked()
@@ -200,7 +286,10 @@ void CMainWindow::on_pb_finishConfigure_clicked()
 
     if (box->clickedButton() == yes) {
         m_serial.close();
-        setView(eStartPage);
+        setPage(eStartPage);
+        disconnect(&m_serial, &CSerialPort::s_readyRead, this, &CMainWindow::readyRead);
+        disconnect(&m_serial, &CSerialPort::s_deviceRemoved, this, &CMainWindow::serialRemoved);
+        disconnect(&m_serial, &CSerialPort::s_error, this, &CMainWindow::setError);
     }
     delete box;
 }
@@ -211,7 +300,7 @@ void CMainWindow::on_pb_cancel_clicked()
     setMode(eHidden);
 }
 
-void CMainWindow::loadSettings(QString nameElement)
+void CMainWindow::loadSettingsFields(QString nameElement)
 {
     SSettings sett = SSettingsSerial::getSerialDefault();
     for (auto el : m_setts) {
@@ -229,16 +318,55 @@ void CMainWindow::loadSettings(QString nameElement)
     ui->ln_waitPacketTime->setText(sett.fields[SERIAL_WAITPACKETTIME]);
 }
 
+void CMainWindow::loadSettingStatus(const QList<QString> &errorFields)
+{
+    // Идем по всем полям формы, подсвечиваем те, которые ошибочные
+    for (int i = 0; i < ui->fl_unitSettings->rowCount(); i++) {
+        auto label = ui->fl_unitSettings->itemAt(i, QFormLayout::ItemRole::LabelRole)->widget();
+        auto fieldName = label->property(FIELD_NAME).toString();
+        qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: black }; ");
+
+        for (auto errorField : errorFields) {
+            if (fieldName == errorField)
+                qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: red }; }");
+        }
+    }
+}
+
+void CMainWindow::confirmSetting(const SSettings &sett)
+{
+    setCurrentSetting(sett);
+    // удаляем настройку из листа ожидания подтверждения (m_processingSetts)
+    for (auto it = m_processingSetts.begin(); it != m_processingSetts.end(); it++) {
+        if (it->fields.contains(SERIAL_IFACE))
+            if (it->fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
+                m_processingSetts.erase(it);
+            }
+    }
+}
+
+void CMainWindow::requestCurrentSettings(ESettingsType type)
+{
+    m_serial.requestData(ESettingsType::eCommon);
+    m_serial.requestData(ESettingsType::eSerial);
+}
+
 void CMainWindow::on_pb_accept_clicked()
 {
+    setMode(eWaitMode);
     ui->wgt_model->freezeExcept();
     SSettingsSerial sett;
+    QString iface = ui->lb_ifaceName->text();
+    sett.fields[SERIAL_IFACE] = iface;
     sett.fields[SERIAL_PARITY] = ui->cb_parity->currentText();
     sett.fields[SERIAL_BAUDRATE] = ui->cb_baudRate->currentText();
     sett.fields[SERIAL_DATABITS] = ui->cb_dataBits->currentText();
     sett.fields[SERIAL_STOPBITS] = ui->cb_stopBits->currentText();
     sett.fields[SERIAL_WRITEDELAY] = ui->ln_writeDelay->text();
     sett.fields[SERIAL_WAITPACKETTIME] = ui->ln_waitPacketTime->text();
+    // добавили в лист ожидания
+    m_processingSetts.append(sett);
+
     m_serial.sendData(sett);
-    setMode(eWaitMode);
+    ui->wgt_model->changeState(iface, eConnected);
 }

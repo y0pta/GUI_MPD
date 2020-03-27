@@ -54,7 +54,7 @@ bool CSerialPort::openDefault(QString name)
     return true;
 }
 
-bool CSerialPort::close()
+void CSerialPort::close()
 {
     m_port.close();
 }

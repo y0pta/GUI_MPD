@@ -30,15 +30,22 @@ SSettings CCmdTransmitter::readNextSettings(QIODevice *dev)
     int posBegin = data.indexOf(getTypeStr(nextType)) + getTypeStr(nextType).size();
     int posEnd = data.indexOf(SETTINGS_INTERRUPTOR, posBegin);
     QByteArray settData = dev->read(posEnd + SETTINGS_INTERRUPTOR.size());
+    // До секции идут критические ошибки
+    QByteArray err = settData.mid(0, posBegin);
+
     settData.remove(0, posBegin);
 
     switch (nextType) {
     case ESettingsType::eCommon:
         fillSettings(settData, settCommon);
+        if (!err.isEmpty())
+            settCommon.fields.insert(SETTINGS_ERROR, err);
         return settCommon;
         break;
     case ESettingsType::eSerial:
         fillSettings(settData, settSerial);
+        if (!err.isEmpty())
+            settCommon.fields.insert(SETTINGS_ERROR, err);
         return settSerial;
         break;
     default:
@@ -104,15 +111,6 @@ void CCmdTransmitter::requestSettings(QIODevice *dev, ESettingsType type,
     str += SETTINGS_INTERRUPTOR;
     str += "\n";
     dev->write(str.toStdString().c_str());
-}
-
-bool CCmdTransmitter::isConfirmation(SSettings sett)
-{
-    for (auto field : sett.fields) {
-        if (field == "ok" || field.contains("<"))
-            return true;
-    }
-    return false;
 }
 
 void CCmdTransmitter::sendSettings(QIODevice *dev, const SSettings &sett)
