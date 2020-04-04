@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QObject>
 #include <ssettings.h>
+#include <cprotocoltransmitter.h>
 
 class CSerialPort : public QObject
 {
@@ -30,11 +31,6 @@ public:
     // opens port with default settings (115200 8n1)
     bool openDefault(QString name);
     void close();
-    void sendData(const SSettings &data);
-    void sendData(const QByteArray &data);
-    void requestData(ESettingsType type,
-                     const QPair<QString, QString> &parameter = QPair<QString, QString>());
-    QList<SSettings> readAllSettings();
     QByteArray readAllRaw();
 
 private:
@@ -44,6 +40,7 @@ private slots:
 
 private:
     QSerialPort m_port;
+    CProtocolTransmitter transmitter;
     QTimer m_timeToCheckPorts;
     QList<QString> m_avaliablePorts;
 };

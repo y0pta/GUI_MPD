@@ -7,11 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>608</width>
-    <height>663</height>
+    <height>691</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: #9C9C9C;  color: white;</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QGroupBox" name="gb_settings">
@@ -25,6 +28,15 @@
       <width>501</width>
       <height>291</height>
      </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">QGroupBox {
+    background-color:   rgb(13, 13, 13)
+    border-radius:  10px;
+	selection-color: rgb(255, 170, 0);
+	border:  2px solid ;
+	font: 10pt &quot;Arial Black&quot;;
+}</string>
     </property>
     <property name="title">
      <string>Настройки</string>
@@ -48,6 +60,49 @@
       </item>
       <item row="0" column="1">
        <widget class="QComboBox" name="cb_baudRate">
+        <property name="styleSheet">
+         <string notr="true">QComboBox {
+    border-radius: 3px;
+    padding: 1px 18px 1px 3px;
+    min-width: 6em;
+}
+
+
+QComboBox:!editable, QComboBox::drop-down:editable {
+     background:  gray;
+}
+
+/* QComboBox gets the &quot;on&quot; state when the popup is open */
+QComboBox:!editable:on, QComboBox::drop-down:editable:on {
+    background: gray;
+}
+
+QComboBox:on { /* shift the text when the popup opens */
+    padding-top: 3px;
+    padding-left: 4px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 15px;
+
+    border-left-width: 1px;
+    border-left-color: darkgray;
+    border-left-style: solid; /* just a single line */
+    border-top-right-radius: 3px; /* same radius as the QComboBox */
+    border-bottom-right-radius: 3px;
+}
+
+QComboBox::down-arrow {
+    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
+}
+
+QComboBox::down-arrow:on { /* shift the arrow when popup is open */
+    top: 1px;
+    left: 1px;
+}</string>
+        </property>
         <item>
          <property name="text">
           <string>115200</string>
@@ -74,6 +129,49 @@
       </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="cb_dataBits">
+        <property name="styleSheet">
+         <string notr="true">QComboBox {
+    border-radius: 3px;
+    padding: 1px 18px 1px 3px;
+    min-width: 6em;
+}
+
+
+QComboBox:!editable, QComboBox::drop-down:editable {
+     background:  gray;
+}
+
+/* QComboBox gets the &quot;on&quot; state when the popup is open */
+QComboBox:!editable:on, QComboBox::drop-down:editable:on {
+    background: gray;
+}
+
+QComboBox:on { /* shift the text when the popup opens */
+    padding-top: 3px;
+    padding-left: 4px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 15px;
+
+    border-left-width: 1px;
+    border-left-color: darkgray;
+    border-left-style: solid; /* just a single line */
+    border-top-right-radius: 3px; /* same radius as the QComboBox */
+    border-bottom-right-radius: 3px;
+}
+
+QComboBox::down-arrow {
+    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
+}
+
+QComboBox::down-arrow:on { /* shift the arrow when popup is open */
+    top: 1px;
+    left: 1px;
+}</string>
+        </property>
         <item>
          <property name="text">
           <string>8</string>
@@ -105,6 +203,49 @@
       </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="cb_parity">
+        <property name="styleSheet">
+         <string notr="true">QComboBox {
+    border-radius: 3px;
+    padding: 1px 18px 1px 3px;
+    min-width: 6em;
+}
+
+
+QComboBox:!editable, QComboBox::drop-down:editable {
+     background:  gray;
+}
+
+/* QComboBox gets the &quot;on&quot; state when the popup is open */
+QComboBox:!editable:on, QComboBox::drop-down:editable:on {
+    background: gray;
+}
+
+QComboBox:on { /* shift the text when the popup opens */
+    padding-top: 3px;
+    padding-left: 4px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 15px;
+
+    border-left-width: 1px;
+    border-left-color: darkgray;
+    border-left-style: solid; /* just a single line */
+    border-top-right-radius: 3px; /* same radius as the QComboBox */
+    border-bottom-right-radius: 3px;
+}
+
+QComboBox::down-arrow {
+    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
+}
+
+QComboBox::down-arrow:on { /* shift the arrow when popup is open */
+    top: 1px;
+    left: 1px;
+}</string>
+        </property>
         <item>
          <property name="text">
           <string>no</string>
@@ -131,6 +272,49 @@
       </item>
       <item row="3" column="1">
        <widget class="QComboBox" name="cb_stopBits">
+        <property name="styleSheet">
+         <string notr="true">QComboBox {
+    border-radius: 3px;
+    padding: 1px 18px 1px 3px;
+    min-width: 6em;
+}
+
+
+QComboBox:!editable, QComboBox::drop-down:editable {
+     background:  gray;
+}
+
+/* QComboBox gets the &quot;on&quot; state when the popup is open */
+QComboBox:!editable:on, QComboBox::drop-down:editable:on {
+    background: gray;
+}
+
+QComboBox:on { /* shift the text when the popup opens */
+    padding-top: 3px;
+    padding-left: 4px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 15px;
+
+    border-left-width: 1px;
+    border-left-color: darkgray;
+    border-left-style: solid; /* just a single line */
+    border-top-right-radius: 3px; /* same radius as the QComboBox */
+    border-bottom-right-radius: 3px;
+}
+
+QComboBox::down-arrow {
+    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
+}
+
+QComboBox::down-arrow:on { /* shift the arrow when popup is open */
+    top: 1px;
+    left: 1px;
+}</string>
+        </property>
         <item>
          <property name="text">
           <string>1 bit</string>
@@ -148,15 +332,16 @@
         </item>
        </widget>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="lb_writeDelay">
-        <property name="text">
-         <string>Задержка между пакетами</string>
+      <item row="4" column="1">
+       <widget class="QLineEdit" name="ln_writeDelay">
+        <property name="styleSheet">
+         <string notr="true">QLineEdit  {
+    border-radius: 3px;
+    background-color: gray;
+}
+</string>
         </property>
        </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QLineEdit" name="ln_writeDelay"/>
       </item>
       <item row="5" column="0">
        <widget class="QLabel" name="lb_waitPacketTime">
@@ -166,7 +351,22 @@
        </widget>
       </item>
       <item row="5" column="1">
-       <widget class="QLineEdit" name="ln_waitPacketTime"/>
+       <widget class="QLineEdit" name="ln_waitPacketTime">
+        <property name="styleSheet">
+         <string notr="true">QLineEdit  {
+    border-radius: 3px;
+    background-color: gray;
+}
+</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="lb_writeDelay">
+        <property name="text">
+         <string>Задержка между пакетами</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -219,14 +419,14 @@
       </rect>
      </property>
      <property name="autoFillBackground">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
      <property name="text">
       <string/>
      </property>
      <property name="icon">
-      <iconset>
-       <normaloff>close-window.png</normaloff>close-window.png</iconset>
+      <iconset resource="resources.qrc">
+       <normaloff>:/close-window.png</normaloff>:/close-window.png</iconset>
      </property>
     </widget>
     <widget class="QLabel" name="lb_ifaceName">
@@ -255,8 +455,8 @@
    <widget class="QLabel" name="lb_status">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>590</y>
+      <x>170</x>
+      <y>600</y>
       <width>291</width>
       <height>25</height>
      </rect>
@@ -386,6 +586,19 @@
      </property>
     </widget>
    </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>520</x>
+      <y>600</y>
+      <width>80</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Статистика</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -407,6 +620,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

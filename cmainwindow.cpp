@@ -5,10 +5,11 @@
 CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMainWindow)
 {
     ui->setupUi(this);
-    setStyleSheet(
-            "QMainWindow { background-color: #9C9C9C; }\n QPushButton { background-color: "
-            "#979797; }\n QComboBox { color: white; background-color: #676767}\n QLineEdit { "
-            "background-color: #676767 }\n QMenu {color: white; background-color: #676767}\n");
+    //    setStyleSheet(
+    //            "QMainWindow { background-color: #9C9C9C; }\n QPushButton { background-color: "
+    //            "#979797; }\n QComboBox { color: white; background-color: #676767}\n QLineEdit { "
+    //            "background-color: #676767 }\n QMenu {color: white; background-color:
+    //            #676767}\n");
     ui->gb_mpdModel->setStyleSheet(
             "QGroupBox {color: white; background-color: #A7A7A7; border: solid; }");
     //Настраиваем виджет с моделью
@@ -39,12 +40,12 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
     // user data
     QString str = SERIAL_PARITY;
 
-    ui->lb_parity->setProperty(FIELD_NAME, SERIAL_PARITY.toStdString().c_str());
-    ui->lb_baudRate->setProperty(FIELD_NAME, SERIAL_BAUDRATE.toStdString().c_str());
-    ui->lb_dataBits->setProperty(FIELD_NAME, SERIAL_DATABITS.toStdString().c_str());
-    ui->lb_stopBits->setProperty(FIELD_NAME, SERIAL_STOPBITS.toStdString().c_str());
-    ui->lb_writeDelay->setProperty(FIELD_NAME, SERIAL_WRITEDELAY.toStdString().c_str());
-    ui->lb_waitPacketTime->setProperty(FIELD_NAME, SERIAL_WAITPACKETTIME.toStdString().c_str());
+    ui->lb_parity->setProperty(FIELD_NAME, QString(SERIAL_PARITY));
+    ui->lb_baudRate->setProperty(FIELD_NAME, QString(SERIAL_BAUDRATE));
+    ui->lb_dataBits->setProperty(FIELD_NAME, QString(SERIAL_DATABITS));
+    ui->lb_stopBits->setProperty(FIELD_NAME, QString(SERIAL_STOPBITS));
+    ui->lb_writeDelay->setProperty(FIELD_NAME, QString(SERIAL_WRITEDELAY));
+    ui->lb_waitPacketTime->setProperty(FIELD_NAME, QString(SERIAL_WAITPACKETTIME));
 
     setMode(eEditMode);
     sett.fields[SERIAL_BAUDRATE] = "1200";

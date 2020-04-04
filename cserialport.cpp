@@ -1,6 +1,6 @@
 #include "cserialport.h"
 #include <QSerialPortInfo>
-#include <ccmdtransmitter.h>
+#include <cprotocoltransmitter.h>
 
 CSerialPort::CSerialPort(QObject *parent)
 {
@@ -51,6 +51,7 @@ bool CSerialPort::openDefault(QString name)
     }
     connect(&m_port, &QSerialPort::readyRead, this, &CSerialPort::s_readyRead);
     connect(&m_port, &QSerialPort::errorOccurred, this, &CSerialPort::errorOccured);
+    transmitter.setDevice(&m_port);
     return true;
 }
 
