@@ -30,7 +30,12 @@ int indexOfSectionHeader(const QByteArray &data, ESectionType &type)
 CProtocolTransmitter::CProtocolTransmitter(QIODevice *dev, QObject *parent) : QObject(parent)
 {
     m_timer.setSingleShot(true);
-    m_device = dev;
+    connect(&m_timer, &QTimer::timeout, this, &CProtocolTransmitter::requestTimeout);
+    setDevice(dev);
+}
+CProtocolTransmitter::CProtocolTransmitter(QObject *parent) : QObject(parent)
+{
+    m_timer.setSingleShot(true);
     connect(&m_timer, &QTimer::timeout, this, &CProtocolTransmitter::requestTimeout);
 }
 
@@ -49,66 +54,40 @@ void CProtocolTransmitter::removeDevice()
 
 void CProtocolTransmitter::getRequest(ESectionType type)
 {
-    if (m_device) {
-        switch (type) {
-        case eSerial:
-            lastReq = SSerialSection();
-            break;
-        case eCommon:
-            lastReq = SCommonSection();
-            break;
-        case eStat:
-            lastReq = SStatSection();
-            break;
-        default:
-            return;
-        }
-        QString str = "get(" + getStr(type) + ")\n";
-        str.remove('[');
-        str.remove(']');
-        m_device->write(str.toStdString().c_str());
+    switch (type) {
+    case eSerial:
+        requests.enqueue(SSerialSection());
+        break;
+    case eCommon:
+        requests.enqueue(SCommonSection());
+        break;
+    case eStat:
+        requests.enqueue(SStatSection());
+        break;
+    default:
+        return;
     }
 }
 
 void CProtocolTransmitter::setRequest(const SSection &section)
 {
-    lastReq = section;
-    if (m_device) {
-        auto type = section.getType();
-        /// запросы на изменение можно посылать только для eSeria и eCommon
-        if (!(type == eSerial || type == eCommon))
-            return;
+    auto type = section.getType();
+    /// запросы на изменение можно посылать только для eSeria и eCommon
+    if (!(type == eSerial || type == eCommon))
+        return;
 
-        QString str;
-        str += getStr(type);
-        str += "\n";
-        for (auto it = section.fields.begin(); it != section.fields.end(); it++) {
-            if (!it.value().isEmpty())
-                str = str + it.key() + ": " + it.value() + "\n";
-        }
-        m_device->write(str.toStdString().c_str());
-
-        m_timer.start(TIMEOUT);
-    }
+    requests.enqueue(section);
 }
 
 void CProtocolTransmitter::serviceRequest(EServiceCommand cmd)
 {
-    if (m_device) {
-        QString str = SERVICE_COMMAND[cmd] + "\n";
-        m_device->write(str.toStdString().c_str());
-        SDebugSection temp;
-        temp.fields[SERVICE_COMMAND[cmd]] = SERVICE_COMMAND[cmd];
-        lastReq = temp;
-        m_timer.start();
-    }
+    SDebugSection temp;
+    temp.fields[SERVICE_COMMAND[cmd]] = SERVICE_COMMAND[cmd];
+    requests.enqueue(temp);
 }
 
 void CProtocolTransmitter::readyRead()
 {
-    if (m_device == nullptr)
-        return;
-
     /// отделяем всю служебную информацию (все, что не в секции) и узнаем тип следующей секции
     for (ESectionType type = separateNoSection(); type != eNoSection;
          type = separateNoSection()) { ///пока есть, что читать
@@ -121,53 +100,45 @@ void CProtocolTransmitter::readyRead()
             return;
         /// заполняем
         switch (type) {
-        case eCommon: {
-            SCommonSection cs;
-            fillSection(rawSection, cs);
-            sect = cs;
+        case eCommon:
+            sect = SCommonSection();
+            break;
+        case eSerial:
+            sect = SSerialSection();
+        case eDebug:
+            sect = SDebugSection();
+            break;
+        case eStat:
+            sect = SStatSection();
             break;
         }
-        case eSerial: {
-            SSerialSection ss;
-            fillSection(rawSection, ss);
-            sect = ss;
-            break;
-        }
-        case eDebug: {
-            SDebugSection ds;
-            fillSection(rawSection, ds);
-            sect = ds;
-            break;
-        }
-        case eStat: {
-            SStatSection sts;
-            fillSection(rawSection, sts);
-            sect = sts;
-            break;
-        }
-        }
-        QDebug dbg = qDebug();
-        dbg << sect;
+        fillSection(rawSection, sect);
+
         /// разделяем подтверждения и ответы на запросы
-        if (sect.isConfirmation()) {
+        if (SSection::isConfirmation(sect)) {
             processConfirmation(sect);
         } else {
             emit s_sectionRead(sect);
+            if (requests.head().getType() == sect.getType()) {
+                requests.dequeue();
+                m_timer.stop();
+            }
         }
     }
+    processNextRequest();
 }
 
 void CProtocolTransmitter::requestTimeout()
 {
-    if (lastReq.getType() != eDebug)
-        emit s_requestFailed(lastReq);
+    auto request = requests.dequeue();
+    if (request.getType() != eDebug)
+        emit s_requestFailed(request);
     else {
-        for (auto it = lastReq.fields.begin(); it != lastReq.fields.end(); it++) {
+        for (auto it = request.fields.begin(); it != request.fields.end(); it++) {
             if (!it.value().isEmpty())
                 emit s_serviceRequestFailed(it.key());
         }
     }
-    lastReq = SSection();
 }
 
 /// возвращает имя секции, если дальше есть целая секция
@@ -183,13 +154,14 @@ ESectionType CProtocolTransmitter::separateNoSection()
 
         /// нет начала => все в отладку, ждем следующей инфы в буфере
         if (posHeader == -1) {
-            emit s_noSectionRead(QString(m_device->readAll()));
+            emit s_debugInfo(QString(m_device->readAll()));
             return eNoSection;
         }
 
-        ///перед началом что-то есть=>кидаем все, что до начала в отладку и начинаем поиск заново
+        ///перед началом что-то есть=>кидаем все, что до начала в отладку и начинаем поиск
+        ///заново
         if (posHeader > 0) {
-            emit s_noSectionRead(m_device->read(posHeader));
+            emit s_debugInfo(m_device->read(posHeader));
             continue;
         }
 
@@ -224,8 +196,7 @@ QByteArray CProtocolTransmitter::readRawSection(QString sectionName)
     return sectData;
 }
 
-template<typename SSectionClass>
-void CProtocolTransmitter::fillSection(const QByteArray &rawSection, SSectionClass &sect)
+void fillSection(const QByteArray &rawSection, SSection &sect)
 {
     /// статистика не разделется на строки и идет целым куском
     if (sect.getType() == eStat) {
@@ -248,18 +219,25 @@ void CProtocolTransmitter::fillSection(const QByteArray &rawSection, SSectionCla
             }
         }
     }
+    QDebug dbg = qDebug();
+    dbg << sect;
 }
 
 void CProtocolTransmitter::processConfirmation(const SSection &sect)
 {
     QDebug dbg = qDebug();
-    if (!sect.isConfirmation() || lastReq.getType() == eNoSection)
+    auto request = requests.head();
+    if (request.getType() == eNoSection)
         return;
+    if (request.getType() == eDebug) {
+        processServiceConfirmation(sect);
+        return;
+    }
 
-    auto listErrors = sect.getErrorFields();
-    if (listErrors.size() < 1 && lastReq.getType() == sect.getType()) {
-        emit s_requestConfirmed(lastReq);
-        dbg << "Last req confirmed" << lastReq;
+    auto listErrors = SSection::getErrorFields(sect);
+    if (listErrors.size() < 1 && request.getType() == sect.getType()) {
+        emit s_requestConfirmed(request);
+        dbg << "Last request confirmed" << request;
     } else {
         emit s_requestError(listErrors);
         dbg << "Error list: " << endl;
@@ -267,144 +245,71 @@ void CProtocolTransmitter::processConfirmation(const SSection &sect)
             dbg << err << endl;
         }
     }
-
-    lastReq = SSection();
+    /// запрос получил подтверждение, удаляем его из списка ожидания
+    requests.dequeue();
+    m_timer.stop();
 }
 
-//// ESectionType CProtocolTransmitter::nextSectionType() const
-////{
-////    QByteArray data = m_device->peek(m_device->size());
-////    int posInterruptor = data.indexOf(SECTION_INTERRUPTOR);
+void CProtocolTransmitter::processServiceConfirmation(const SSection &sect)
+{
+    if (sect.getType() != eDebug)
+        return;
 
-////    if (posInterruptor == -1)
-////        return eNoSection;
+    auto request = requests.head();
+    /// если предыдущий запрос был service
+    if (request.getType() == eDebug) {
+        /// ищем подтверждение
+        for (auto it = sect.fields.begin(); it != sect.fields.end(); it++) {
+            if (!it.value().isEmpty()) {
+                if (it.key() == SECTIONVAL_CONFIRMED) {
+                    emit s_serviceRequestConfirmed(it.value());
+                    qDebug() << "Last service-request confirmed: " << it.value();
 
-////    while (posInterruptor > -1) {
-////        /// находим заголовок секции среди существующих имен
-////        for (auto it = SECTION_TYPES.begin(); it != SECTION_TYPES.end(); it++) {
-////            int posHeader = data.indexOf(it.value());
-////            /// нашли заголовок и название секции идет перед окончанием секции
-////            if (posHeader != -1 && posHeader < posInterruptor) {
-////                return it.key();
-////            }
-////        }
-////        ///не нашли заголовков существующих секций перед окончанием секции, переходим к
-///следующему /        ///окончанию секции /        posInterruptor =
-/// data.indexOf(SECTION_INTERRUPTOR, posInterruptor + 1); /    } /    return eNoSection;
-////}
+                } else {
+                    emit s_serviceRequestFailed(it.value());
+                    qDebug() << "Last service-request failed: " << it.value();
+                }
+            }
+        }
+        /// запрос обработан, удаляем его из списка ожидания
+        requests.dequeue();
+        m_timer.stop();
+    }
+}
 
-// QList<SSettings> CCmdTransmitter::readSettings(QIODevice *dev)
-//{
-//    QList<SSettings> res;
-//    SSettings temp;
-//    temp = readNextSettings(dev);
-//    while (temp.getType() != ESettingsType::eNoSection) {
-//        res.append(temp);
-//        temp = readNextSettings(dev);
-//    }
-//    return res;
-//}
+void CProtocolTransmitter::processNextRequest()
+{
+    if (requests.size() > 0) {
+        QString str;
+        SSection req = requests.head();
+        auto type = req.getType();
+        /// секция пустая => get-запрос
+        if (SSection::isEmpty(req)) {
+            str = "get(" + getStr(type) + ")\n";
+            str.remove('[');
+            str.remove(']');
 
-// SSettings CCmdTransmitter::readNextSettings(QIODevice *dev)
-//{
-//    SSettings res;
-//    SSettingsSerial settSerial;
-//    SCommonSettings settCommon;
+        }
+        /// секция заполнена => service- или set-зпрос
+        else {
 
-//    QByteArray data = dev->peek(dev->size());
-//    //выясняем,какой тип настроек следующий и есть ли там вообще настройки
-//    ESettingsType nextType = readNextSectionType(data);
-//    //настроек не оказалось
-//    if (nextType == ESettingsType::eNoSection)
-//        return res;
-
-//    //вычленяем "сырые" настройки от SETTINGS_TYPE до SETTINGS_INTERRUPTOR (Пример: от
-//    [common] до
-//    //[end])
-//    int posBegin = data.indexOf(getTypeStr(nextType)) + getTypeStr(nextType).size();
-//    int posEnd = data.indexOf(SETTINGS_INTERRUPTOR, posBegin);
-//    QByteArray settData = dev->read(posEnd + SETTINGS_INTERRUPTOR.size());
-//    // До секции идут критические ошибки
-//    QByteArray err = settData.mid(0, posBegin);
-
-//    settData.remove(0, posBegin);
-
-//    switch (nextType) {
-//    case ESettingsType::eCommon:
-//        fillSettings(settData, settCommon);
-//        if (!err.isEmpty())
-//            settCommon.fields.insert(SETTINGS_ERROR, err);
-//        return settCommon;
-//        break;
-//    case ESettingsType::eSerial:
-//        fillSettings(settData, settSerial);
-//        if (!err.isEmpty())
-//            settCommon.fields.insert(SETTINGS_ERROR, err);
-//        return settSerial;
-//        break;
-//    default:
-//        return res;
-//    }
-//}
-
-// template<typename SSettingsClass>
-// void CCmdTransmitter::fillSettings(const QByteArray &rawSett, SSettingsClass &sett)
-//{
-//}
-
-// ESettingsType CCmdTransmitter::readNextSectionType(const QByteArray &data)
-//{
-//    int posInterruptor = data.indexOf(SETTINGS_INTERRUPTOR);
-//    if (posInterruptor == -1)
-//        return ESettingsType::eNoSection;
-
-//    while (posInterruptor > -1) {
-//        // Находим первое вхождение SETTINGS_INTERRUPTOR. Если нет SETTINGS_INTERRUPTOR,
-//        значит, нет
-//        // целых настроек
-
-//        // проверяем вхождение в data заголовков существующих секций
-//        for (auto it = SETTINGS_TYPES.begin(); it != SETTINGS_TYPES.end(); it++) {
-//            int posHeader = data.indexOf(it.value());
-//            // нашли совпадение и секция идет перед SETTINGS_INTERRUPTOR
-//            if (posHeader != -1 && posHeader < posInterruptor) {
-//                return it.key();
-//            }
-//        }
-//        //не нашли вхождение в data заголовков существующих секций, переходим к следующему
-//        // SETTINGS_INTERRUPTOR
-//        posInterruptor = data.indexOf(SETTINGS_INTERRUPTOR, posInterruptor + 1);
-//    }
-//    return ESettingsType::eNoSection;
-//}
-
-// void CCmdTransmitter::requestSettings(QIODevice *dev, ESettingsType type,
-//                                      const QPair<QString, QString> &parameter)
-//{
-//    QString str;
-//    str += SETTINGS_REQUEST;
-//    str += "\ntype: ";
-//    QString strType = getTypeStr(type);
-//    strType.replace("[", "");
-//    strType.replace("]", "");
-//    str += strType;
-//    str += "\n";
-//    if (parameter.first.size() > 1 && parameter.second.size() > 1) {
-//        str = str + parameter.first + ": " + parameter.second + "\n";
-//    }
-//    str += SETTINGS_INTERRUPTOR;
-//    str += "\n";
-//    dev->write(str.toStdString().c_str());
-//}
-
-// void CCmdTransmitter::sendSettings(QIODevice *dev, const SSettings &sett)
-//{
-//    QString str;
-//    str += getTypeStr(sett.getType());
-//    str += "\n";
-//    for (auto it = sett.fields.begin(); it != sett.fields.end(); it++) {
-//        if (!it.value().isEmpty())
-//            str = str + it.key() + ": " + it.value() + "\n";
-//    }
-//    dev->write(str.toStdString().c_str());
-//}
+            str += getStr(type);
+            str += "\n";
+            for (auto it = req.fields.begin(); it != req.fields.end(); it++) {
+                if (!it.value().isEmpty()) {
+                    /// service - запрос
+                    if (type == eDebug)
+                        str = it.key() + "\n";
+                    /// set - запрос
+                    else
+                        str = str + it.key() + ": " + it.value() + "\n";
+                }
+            }
+        }
+        /// отправляем запрос
+        if (m_device) {
+            m_device->write(str.toStdString().c_str());
+            m_timer.start();
+        }
+    }
+}

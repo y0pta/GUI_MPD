@@ -20,18 +20,16 @@ public:
     static QList<QString> avaliablePorts();
 
 signals:
-    void s_readyRead();
     void s_error(QString);
     void s_deviceRemoved();
-    void s_disconnected();
-    void s_connected();
     void s_avaliablePortsChanged();
 
 public:
     // opens port with default settings (115200 8n1)
     bool openDefault(QString name);
     void close();
-    QByteArray readAllRaw();
+
+    void setProtocol(CProtocolTransmitter *pt);
 
 private:
     void checkAvaliablePorts();
@@ -40,7 +38,6 @@ private slots:
 
 private:
     QSerialPort m_port;
-    CProtocolTransmitter transmitter;
     QTimer m_timeToCheckPorts;
     QList<QString> m_avaliablePorts;
 };

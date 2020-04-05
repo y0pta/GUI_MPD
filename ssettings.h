@@ -61,28 +61,15 @@ const QString SECTIONVAL_ERROR = "error";
 struct SSection {
     QMap<QString, QString> fields;
 
+    ///определяет тип настроек
     static ESectionType getType(const SSection &sect) { return sect.getType(); }
+    /// определяет, является подтверждением
+    static bool isConfirmation(const SSection &sect);
+    /// возвращает поля ошибок
+    static QList<QString> getErrorFields(const SSection &sect);
+    /// если значения всех полей пусты, возвращает true
+    static bool isEmpty(const SSection &sect);
     ESectionType getType() const { return m_type; }
-    bool isConfirmation() const
-    {
-        for (auto field : fields) {
-            if (field.contains("<") && field.contains(">"))
-                return true;
-        }
-        return false;
-    }
-    QList<QString> getErrorFields() const
-    {
-        QList<QString> res;
-        for (auto it = fields.begin(); it != fields.end(); it++) {
-            bool empty = it.value().isEmpty();
-            bool confirmed = it.value().contains(SECTIONVAL_CONFIRMED);
-            bool serialName = it.key() == SERIAL_IFACE;
-            if (!empty && !confirmed && !serialName)
-                res.push_back(it.key());
-        }
-        return res;
-    }
 
 protected:
     ESectionType m_type { eNoSection };
@@ -145,6 +132,35 @@ static QDebug &operator<<(QDebug &debug, const SSection &sect)
     return debug;
 }
 
+bool SSection::isConfirmation(const SSection &sect)
+{
+    for (auto field : sect.fields) {
+        if (field.contains("<") && field.contains(">"))
+            return true;
+    }
+    return false;
+}
+QList<QString> SSection::getErrorFields(const SSection &sect)
+{
+    QList<QString> res;
+    for (auto it = sect.fields.begin(); it != sect.fields.end(); it++) {
+        bool empty = it.value().isEmpty();
+        bool confirmed = it.value().contains(SECTIONVAL_CONFIRMED);
+        bool serialName = it.key() == SERIAL_IFACE;
+        if (!empty && !confirmed && !serialName)
+            res.push_back(it.key());
+    }
+    return res;
+}
+
+bool SSection::isEmpty(const SSection &sect)
+{
+    for (auto field : sect.fields) {
+        if (!field.isEmpty())
+            return false;
+    }
+    return true;
+}
 // const QString SECTION_INTERRUPTOR = "[end]";
 // enum EState { eConnected, eDisconnected, eError };
 // enum ESettingsType { eSerial, eCommon, eUnknown };

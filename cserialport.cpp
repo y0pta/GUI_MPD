@@ -49,9 +49,8 @@ bool CSerialPort::openDefault(QString name)
         emit s_error(m_port.errorString());
         return false;
     }
-    connect(&m_port, &QSerialPort::readyRead, this, &CSerialPort::s_readyRead);
     connect(&m_port, &QSerialPort::errorOccurred, this, &CSerialPort::errorOccured);
-    transmitter.setDevice(&m_port);
+
     return true;
 }
 
@@ -60,27 +59,7 @@ void CSerialPort::close()
     m_port.close();
 }
 
-QList<SSettings> CSerialPort::readAllSettings()
+void CSerialPort::setProtocol(CProtocolTransmitter *pt)
 {
-    return CCmdTransmitter::readSettings(&m_port);
-}
-
-QByteArray CSerialPort::readAllRaw()
-{
-    return m_port.readAll();
-}
-
-void CSerialPort::sendData(const SSettings &data)
-{
-    CCmdTransmitter::sendSettings(&m_port, data);
-}
-
-void CSerialPort::sendData(const QByteArray &data)
-{
-    m_port.write(data);
-}
-
-void CSerialPort::requestData(ESettingsType type, const QPair<QString, QString> &parameter)
-{
-    CCmdTransmitter::requestSettings(&m_port, type, parameter);
+    pt->setDevice(&m_port);
 }

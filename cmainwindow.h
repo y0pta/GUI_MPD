@@ -26,33 +26,52 @@ public:
 
     // GUI - functions
 private slots:
-    ///   void changeSerialState(QString textName, EState st);
+    ///   Обработчики нажатий на графику
+    /// моделька МПД
     void on_wgt_model_clicked(QString nameEl);
+    ///
     void on_pb_radio_clicked();
+    /// подключить МПД
     void on_pb_startConfigure_clicked();
     void on_pb_closeSettings_clicked();
-
+    void on_pb_finishConfigure_clicked();
+    void on_pb_cancel_clicked();
+    void on_pb_accept_clicked();
+    void on_pb_stat_clicked();
+    void on_pb_edit_clicked();
     void enableSettings(bool st);
 
-    void on_pb_edit_clicked();
     //! пользователь захотел подключить/отключить интерфейс
     void wantChangeStateReceived(QString ifaceName, EState st);
     //! чтение настроек, пришедших с МПД
     void readyRead();
     //! разбор подтверждений (ответов)
-    void processConfirmation(const SSettings &sett);
+    void processConfirmation(const SSection &sect);
     //! добавление текущих настроек (МПД прислал текущие настройки, нужно их обработать)
-    void setCurrentSetting(const SSettings &sett);
+    void addSetting(const SSection &sect);
     //! порт отключили
     void serialRemoved();
     //! ошибка в порте
     void setError(QString errorStr);
 
-    void on_pb_finishConfigure_clicked();
+    //! заполняет поля настроек для serial-интерфейсов
+    void fillSerialFieds(const SSection &sect);
 
-    void on_pb_cancel_clicked();
-
-    void on_pb_accept_clicked();
+    ///***слоты сообщений от порта и протокола
+    ///! обработка ответа на get-запрос
+    void sectionRead(const SSection &sect);
+    ///! обработка полученной отладочной информации
+    void debugInfo(const QString &str);
+    ///! обработка подтверждения set-запроса или отладочного запроса
+    void requestConfirmed(const SSection &sect);
+    ///! время ожидания запроса превышено
+    void requestFailed(const SSection &sect);
+    ///! запрос получен МПД, но не подтвержден из-за ошибочных значений в полях
+    void requestError(const QList<QString> &errorFields);
+    ///! отладочный запрос не выполнен
+    void serviceRequestFailed(QString name);
+    ///! отладочный запрос выполнен
+    void serviceRequestConfirmed(QString name);
 
 private:
     ///!устанавливает вид страницы
@@ -71,16 +90,20 @@ private:
     ///! запрашивает от МПД текущие настройки
     void requestCurrentSettings(ESettingsType type = eNoSection);
 
+    ///!
+    void prepareProtocol();
+
 private:
     Ui::CMainWindow *ui;
     //!*** Fields for GUI
     ESettingsMode m_mode { eHidden };
     EPage m_page { eStartPage };
 
-    QList<SSettings> m_setts;
-    QList<SSettings> m_processingSetts;
+    ///секции с текущими настройкамми
+    QList<SSection> m_sects;
 
     //!*** Fields for external connections
     CSerialPort m_serial;
+    CProtocolTransmitter *m_protocol { nullptr };
 };
 #endif // CMAINWINDOW_H
