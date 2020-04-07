@@ -9,7 +9,7 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
 
     ///Настраиваем виджет с моделью
     ui->wgt_model->addElements(3, { SERIAL_IFACE_RADIO, SERIAL_IFACE_RS232, SERIAL_IFACE_RS485 });
-    connect(ui->wgt_model, &CMpdWidget::s_clicked, this, &CMainWindow::on_wgt_model_clicked);
+    connect(ui->wgt_model, &CMpdWidget::s_clicked, this, &CMainWindow::showSettings);
     connect(ui->wgt_model, &CMpdWidget::s_wantChangeState, this,
             &CMainWindow::wantChangeStateReceived);
     /// настройка порта для настройки
@@ -32,39 +32,30 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
     //    ui->wgt_model->changeState(SERIAL_IFACE_RS232, eError);
 
     auto sett = SSerialSection::getSerialDefault(SERIAL_IFACE_RADIO);
-    sett.fields[SERIAL_BAUDRATE] = "9600";
-    sett.fields[SERIAL_PARITY] = "odd";
+    //    sett.fields[SERIAL_BAUDRATE] = "9600";
+    //    sett.fields[SERIAL_PARITY] = "odd";
     addSetting(sett);
     addSetting(SSerialSection::getSerialDefault(SERIAL_IFACE_RS232));
     addSetting(SSerialSection::getSerialDefault(SERIAL_IFACE_RS485));
 
-    SCommonSection cs;
-    cs.fields[COMMON_MODE] = COMMON_MODE_VAL[eSms];
-    addSetting(cs);
+    //    SCommonSection cs;
+    //    cs.fields[COMMON_MODE] = COMMON_MODE_VAL[eSms];
+    //    addSetting(cs);
 
-    SStatSection ss;
-    ss.fields[STAT_TEXT] = "swdsdasdsad\nsdasdsadsad\n";
-    addSetting(ss);
+    //    SStatSection ss;
+    //    ss.fields[STAT_TEXT] = "swdsdasdsad\nsdasdsadsad\n";
+    //    addSetting(ss);
 
-    setMode(eViewMode);
-    sett.fields[SERIAL_BAUDRATE] = "1200";
-    sett.fields[SERIAL_PARITY] = "fgdfg";
+    //    setMode(eViewMode);
+    //    sett.fields[SERIAL_BAUDRATE] = "1200";
+    //    sett.fields[SERIAL_PARITY] = "fgdfg";
 
-    loadSettingStatus({ SERIAL_BAUDRATE, SERIAL_DATABITS });
+    //    loadSettingStatus({ SERIAL_BAUDRATE, SERIAL_DATABITS });
 }
 
 CMainWindow::~CMainWindow()
 {
     delete ui;
-}
-
-void CMainWindow::on_wgt_model_clicked(QString nameEl)
-{
-    if (m_mode != eEditMode) {
-        loadSettingsFields(nameEl);
-        setMode(eViewMode);
-        colorFields({});
-    }
 }
 
 void CMainWindow::setPage(EPage page)
@@ -86,6 +77,7 @@ void CMainWindow::setPage(EPage page)
         ui->gb_mpdModel->setVisible(false);
         ui->pb_finishConfigure->setVisible(false);
         ui->lb_mode->setVisible(false);
+        showSettings("RS-232");
     }
 }
 
@@ -151,11 +143,6 @@ void CMainWindow::updateAvaliablePorts()
         ui->pb_startConfigure->setEnabled(enable);
         ui->cb_avaliablePorts->setEnabled(enable);
     }
-}
-
-void CMainWindow::on_pb_radio_clicked()
-{
-    ui->gb_settings->setVisible(true);
 }
 
 void CMainWindow::on_pb_startConfigure_clicked()
@@ -423,6 +410,15 @@ void CMainWindow::prepareProtocol()
             &CMainWindow::serviceRequestConfirmed);
 }
 
+void CMainWindow::showSettings(const QString &nameEl)
+{
+    if (m_mode != eEditMode) {
+        loadSettingsFields(nameEl);
+        setMode(eViewMode);
+        colorFields({});
+    }
+}
+
 void CMainWindow::on_pb_accept_clicked()
 {
     if (!m_protocol || !m_serial.isOpen())
@@ -441,17 +437,6 @@ void CMainWindow::on_pb_accept_clicked()
     sett.fields[SERIAL_WAITPACKETTIME] = ui->ln_waitPacketTime->text();
 
     m_protocol->setRequest(sett);
-}
-
-void CMainWindow::on_pb_stat_clicked()
-{
-    if (m_protocol && m_serial.isOpen())
-        m_protocol->getRequest(eStat);
-}
-
-void CMainWindow::on_pushButton_clicked()
-{
-    ui->txt_debug->clear();
 }
 
 void CMainWindow::on_pb_refreshStat_clicked()
@@ -500,6 +485,14 @@ void CMainWindow::on_pb_clearErrors_clicked()
 
 void CMainWindow::on_pb_clearFlash_clicked()
 {
-    if (m_protocol && m_serial.isOpen())
+    qDebug() << "Clear Flash clicked";
+    if (m_protocol && m_serial.isOpen()) {
         m_protocol->serviceRequest(eClearFlash);
+        qDebug() << "Inside clear flash";
+    }
+}
+
+void CMainWindow::on_pb_clearDebug_clicked()
+{
+    ui->txt_debug->clear();
 }

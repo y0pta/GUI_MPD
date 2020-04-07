@@ -33,6 +33,13 @@ public:
 
     bool isOpen();
 
+    void write(const QByteArray &arr)
+    {
+        m_port.write("arr");
+        m_port.waitForBytesWritten(3000);
+        qDebug() << "wrote";
+    }
+
 private:
     void checkAvaliablePorts();
 private slots:

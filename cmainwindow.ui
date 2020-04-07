@@ -14,9 +14,47 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: #9C9C9C;  color: white;</string>
+   <string notr="true">background-color:  rgb(45, 45, 45); 
+color: white;
+
+QGroupBox {
+    border-radius:  6 px;
+	selection-color: rgb(255, 170, 0);
+	border:  2px solid #00665E ;
+}   
+
+QPushButton {
+    background-color:  rgb(70, 70, 70);
+    border:  2px solid #00665E;
+    border-radius: 2 px;
+  /*  min-width: 10em;*/
+    padding: 3 px;
+}
+QPushButton:pressed {
+    background-color:  rgb(100, 100, 100)
+}</string>
   </property>
   <widget class="QWidget" name="centralwidget">
+   <property name="styleSheet">
+    <string notr="true">
+QPushButton {
+    background-color:  rgb(70, 70, 70);
+    border:  1px solid rgb(100, 100, 100);
+    border-radius: 2 px;
+  /*  min-width: 10em;*/
+    padding: 3 px;
+}
+QPushButton:pressed {
+    background-color:  rgb(150, 150, 150)
+}
+QPushButton:hover{
+    background: rgb(100, 100, 100)
+}
+
+QMenu {
+    background-color:  rgb(70, 70, 70); 
+}</string>
+   </property>
    <widget class="QGroupBox" name="gb_settings">
     <property name="enabled">
      <bool>true</bool>
@@ -31,47 +69,32 @@
     </property>
     <property name="styleSheet">
      <string notr="true">QGroupBox {
-    background-color:   rgb(13, 13, 13)
-    border-radius:  10px;
+    border-radius:  6 6 px;
 	selection-color: rgb(255, 170, 0);
-	border:  2px solid ;
-	font: 10pt &quot;Arial Black&quot;;
-}</string>
-    </property>
-    <property name="title">
-     <string>Настройки</string>
-    </property>
-    <widget class="QWidget" name="formLayoutWidget">
-     <property name="geometry">
-      <rect>
-       <x>30</x>
-       <y>60</y>
-       <width>387</width>
-       <height>151</height>
-      </rect>
-     </property>
-     <layout class="QFormLayout" name="fl_unitSettings">
-      <item row="0" column="0">
-       <widget class="QLabel" name="lb_baudRate">
-        <property name="text">
-         <string>Скорость</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="cb_baudRate">
-        <property name="styleSheet">
-         <string notr="true">QComboBox {
+	border:  2px solid rgb(100,100,100) ;
+}   
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    padding: 3 6px;
+/*border: 2px solid #00665E*/
+}
+QLabel{
+color: rgb(186, 186, 186);
+}
+color:  rgb(186, 186, 186);
+
+background-color:   rgb(70, 70, 70);
+
+QComboBox {
     border-radius: 3px;
     padding: 1px 18px 1px 3px;
     min-width: 6em;
 }
 
-
 QComboBox:!editable, QComboBox::drop-down:editable {
-     background:  gray;
+      rgb(80, 80, 80);
 }
-
 /* QComboBox gets the &quot;on&quot; state when the popup is open */
 QComboBox:!editable:on, QComboBox::drop-down:editable:on {
     background: gray;
@@ -101,8 +124,33 @@ QComboBox::down-arrow {
 QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     top: 1px;
     left: 1px;
-}</string>
+}
+
+
+</string>
+    </property>
+    <property name="title">
+     <string>Настройки</string>
+    </property>
+    <widget class="QWidget" name="formLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>50</y>
+       <width>387</width>
+       <height>164</height>
+      </rect>
+     </property>
+     <layout class="QFormLayout" name="fl_unitSettings">
+      <item row="0" column="0">
+       <widget class="QLabel" name="lb_baudRate">
+        <property name="text">
+         <string>Скорость</string>
         </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="cb_baudRate">
         <item>
          <property name="text">
           <string>115200</string>
@@ -129,49 +177,6 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="1" column="1">
        <widget class="QComboBox" name="cb_dataBits">
-        <property name="styleSheet">
-         <string notr="true">QComboBox {
-    border-radius: 3px;
-    padding: 1px 18px 1px 3px;
-    min-width: 6em;
-}
-
-
-QComboBox:!editable, QComboBox::drop-down:editable {
-     background:  gray;
-}
-
-/* QComboBox gets the &quot;on&quot; state when the popup is open */
-QComboBox:!editable:on, QComboBox::drop-down:editable:on {
-    background: gray;
-}
-
-QComboBox:on { /* shift the text when the popup opens */
-    padding-top: 3px;
-    padding-left: 4px;
-}
-
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 15px;
-
-    border-left-width: 1px;
-    border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 3px; /* same radius as the QComboBox */
-    border-bottom-right-radius: 3px;
-}
-
-QComboBox::down-arrow {
-    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
-}
-
-QComboBox::down-arrow:on { /* shift the arrow when popup is open */
-    top: 1px;
-    left: 1px;
-}</string>
-        </property>
         <item>
          <property name="text">
           <string>8</string>
@@ -203,49 +208,6 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="2" column="1">
        <widget class="QComboBox" name="cb_parity">
-        <property name="styleSheet">
-         <string notr="true">QComboBox {
-    border-radius: 3px;
-    padding: 1px 18px 1px 3px;
-    min-width: 6em;
-}
-
-
-QComboBox:!editable, QComboBox::drop-down:editable {
-     background:  gray;
-}
-
-/* QComboBox gets the &quot;on&quot; state when the popup is open */
-QComboBox:!editable:on, QComboBox::drop-down:editable:on {
-    background: gray;
-}
-
-QComboBox:on { /* shift the text when the popup opens */
-    padding-top: 3px;
-    padding-left: 4px;
-}
-
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 15px;
-
-    border-left-width: 1px;
-    border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 3px; /* same radius as the QComboBox */
-    border-bottom-right-radius: 3px;
-}
-
-QComboBox::down-arrow {
-    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
-}
-
-QComboBox::down-arrow:on { /* shift the arrow when popup is open */
-    top: 1px;
-    left: 1px;
-}</string>
-        </property>
         <item>
          <property name="text">
           <string>no</string>
@@ -272,49 +234,6 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="3" column="1">
        <widget class="QComboBox" name="cb_stopBits">
-        <property name="styleSheet">
-         <string notr="true">QComboBox {
-    border-radius: 3px;
-    padding: 1px 18px 1px 3px;
-    min-width: 6em;
-}
-
-
-QComboBox:!editable, QComboBox::drop-down:editable {
-     background:  gray;
-}
-
-/* QComboBox gets the &quot;on&quot; state when the popup is open */
-QComboBox:!editable:on, QComboBox::drop-down:editable:on {
-    background: gray;
-}
-
-QComboBox:on { /* shift the text when the popup opens */
-    padding-top: 3px;
-    padding-left: 4px;
-}
-
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 15px;
-
-    border-left-width: 1px;
-    border-left-color: darkgray;
-    border-left-style: solid; /* just a single line */
-    border-top-right-radius: 3px; /* same radius as the QComboBox */
-    border-bottom-right-radius: 3px;
-}
-
-QComboBox::down-arrow {
-    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
-}
-
-QComboBox::down-arrow:on { /* shift the arrow when popup is open */
-    top: 1px;
-    left: 1px;
-}</string>
-        </property>
         <item>
          <property name="text">
           <string>1 bit</string>
@@ -373,8 +292,8 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     <widget class="QPushButton" name="pb_cancel">
      <property name="geometry">
       <rect>
-       <x>260</x>
-       <y>220</y>
+       <x>250</x>
+       <y>230</y>
        <width>91</width>
        <height>25</height>
       </rect>
@@ -386,8 +305,8 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     <widget class="QPushButton" name="pb_accept">
      <property name="geometry">
       <rect>
-       <x>110</x>
-       <y>220</y>
+       <x>100</x>
+       <y>230</y>
        <width>89</width>
        <height>25</height>
       </rect>
@@ -399,7 +318,7 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     <widget class="QPushButton" name="pb_edit">
      <property name="geometry">
       <rect>
-       <x>180</x>
+       <x>170</x>
        <y>230</y>
        <width>89</width>
        <height>25</height>
@@ -432,9 +351,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     <widget class="QLabel" name="lb_ifaceName">
      <property name="geometry">
       <rect>
-       <x>20</x>
-       <y>30</y>
-       <width>491</width>
+       <x>110</x>
+       <y>20</y>
+       <width>261</width>
        <height>20</height>
       </rect>
      </property>
@@ -474,8 +393,17 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       <height>25</height>
      </rect>
     </property>
+    <property name="autoFillBackground">
+     <bool>false</bool>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
     <property name="text">
      <string>Завершить настройку МПД</string>
+    </property>
+    <property name="autoRepeatInterval">
+     <number>98</number>
     </property>
    </widget>
    <widget class="QGroupBox" name="gb_start">
@@ -561,7 +489,8 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
      </size>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 1px double  #00665E; </string>
+     <string notr="true">border: 2px double  #00665E; 
+</string>
     </property>
     <property name="title">
      <string/>
@@ -595,6 +524,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       <height>16</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">color :  #00665E</string>
+    </property>
     <property name="text">
      <string>clarity mode</string>
     </property>
@@ -608,8 +540,40 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       <height>601</height>
      </rect>
     </property>
+    <property name="styleSheet">
+     <string notr="true">QTabWidget::pane { /* The tab widget frame */
+    border: 2px solid #00665E;
+border-radius:  5px;
+}
+
+QTabWidget::tab-bar {
+ /*   left: 6px;move to the right by 5px */
+alignment: right;
+}
+
+/* Style the tab using the tab sub-control. Note that
+    it reads QTabBar _not_ QTabWidget */
+QTabBar::tab {
+    background: rgb(70, 70, 70);
+    border: 2px solid #00665E;
+   /* border-bottom-color: #C2C7CB;  same as the pane color */
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+    min-width: 8ex;
+    padding: 2px;
+}
+
+QTabBar::tab:selected, QTabBar::tab:hover {
+    background: rgb(100, 100, 100)
+}
+
+QTabBar::tab:selected {
+    border-color:  #5DCEC6;
+    /*border-bottom-color: #C2C7CB;  same as pane color */
+}</string>
+    </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -620,7 +584,7 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
        <rect>
         <x>10</x>
         <y>60</y>
-        <width>251</width>
+        <width>258</width>
         <height>441</height>
        </rect>
       </property>
@@ -649,6 +613,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </property>
       <property name="text">
        <string>Сбросить</string>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
       </property>
      </widget>
     </widget>
@@ -705,7 +672,7 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
        <rect>
         <x>20</x>
         <y>50</y>
-        <width>231</width>
+        <width>239</width>
         <height>311</height>
        </rect>
       </property>

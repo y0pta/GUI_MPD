@@ -34,7 +34,7 @@ public slots:
 
 signals:
     //испускается, когда нажали на какой-то из элементов
-    void s_clicked(QString nameEl);
+    void s_clicked(const QString &nameEl);
     //испускается, когда элемент хочет сменить статус (коннект на дисконнект, например)
     void s_wantChangeState(QString nameEl, EState st);
 

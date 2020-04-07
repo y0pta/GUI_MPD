@@ -1,4 +1,5 @@
 QT -= gui
+QT += serialport
 
 CONFIG += c++11 console
 CONFIG -= app_bundle
@@ -16,6 +17,7 @@ INCLUDEPATH += ../../
 
 SOURCES += \
         ../../cprotocoltransmitter.cpp \
+        ../../ssettings.cpp \
         main.cpp
 
 # Default rules for deployment.

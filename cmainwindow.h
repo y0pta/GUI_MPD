@@ -43,24 +43,23 @@ protected:
 private slots:
     ///   Обработчики нажатий на графику
     /// моделька МПД
-    void on_wgt_model_clicked(QString nameEl);
+    void showSettings(const QString &nameEl);
     ///
-    void on_pb_radio_clicked();
+    //   void on_pb_radio_clicked();
     /// подключить МПД
     void on_pb_startConfigure_clicked();
     void on_pb_closeSettings_clicked();
     void on_pb_finishConfigure_clicked();
     void on_pb_cancel_clicked();
     void on_pb_accept_clicked();
-    void on_pb_stat_clicked();
     void on_pb_edit_clicked();
-    void on_pushButton_clicked();
     void on_pb_refreshStat_clicked();
     void on_pb_resetStat_clicked();
     void on_pb_applyMode_clicked();
     void on_cb_dumpOn_stateChanged(int arg1);
     void on_pb_clearErrors_clicked();
     void on_pb_clearFlash_clicked();
+    void on_pb_clearDebug_clicked();
     void enableSettings(bool st);
 
     //! пользователь захотел подключить/отключить интерфейс

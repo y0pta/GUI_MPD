@@ -2,6 +2,10 @@
 #include "cprotocoltransmitter.h"
 #include "ssettings.h"
 #include <QFile>
+#include <QtSerialPort/QSerialPort>
+#include <QtSerialPort/QSerialPortInfo>
+#include "cserialport.h"
+
 const QString pathToTestFile = "/home/liza/test";
 
 void testRequestSettings()
@@ -103,8 +107,35 @@ void testReadConfirmed()
     t.readyRead();
     file.close();
 }
+
 int main(int argc, char *argv[])
 {
+    // QCoreApplication a(argc, argv);
+    QSerialPort serial;
+    auto list = QSerialPortInfo::availablePorts();
+    for (auto el : list) {
+        qDebug() << el.portName();
+        qDebug() << el.isBusy();
+    }
+    qDebug() << list.last().systemLocation();
+    serial.setPort(list.last());
+    serial.open(QSerialPort::ReadWrite);
+
+    qDebug() << "opened";
+    QString str = "get(common)\n";
+    qDebug() << str;
+    serial.write(QByteArray(str.toStdString().c_str()));
+    /// если убрать эту строчку, то не будет работать
+    serial.waitForBytesWritten(5000);
+    while (serial.bytesAvailable()) {
+        auto size = serial.bytesAvailable();
+        auto s = serial.readAll();
+        qDebug() << "size: " << size << "bytes ." << s.toStdString().c_str();
+        /// если убрать эту строчку, то не будет работать
+        serial.waitForBytesWritten(5000);
+    }
+    serial.close();
+    // return a.exec();
     // testRequestSettings();
     // testSetSettings();
     // testReadConfirmed();

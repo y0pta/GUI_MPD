@@ -46,9 +46,12 @@ bool CSerialPort::openDefault(QString name)
     m_port.setDataBits(QSerialPort::Data8);
 
     if (!m_port.open(QIODevice::ReadWrite)) {
+        qDebug() << m_port.errorString();
         emit s_error(m_port.errorString());
+
         return false;
     }
+    qDebug() << "Port opened";
     connect(&m_port, &QSerialPort::errorOccurred, this, &CSerialPort::errorOccured);
 
     return true;
