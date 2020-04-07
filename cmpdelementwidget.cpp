@@ -10,12 +10,15 @@ const QString COLOR_DISABLED = "#515757";
 const QString COLOR_BORDER_ACTIVE = "#5DCEC6";
 const QString COLOR_BORDER_DISACTIVE = "#00665E";
 
+const QString CONNECT = "Подсоединить";
+const QString DISCONNECT = "Отсоединить";
+
 CMpdElementWidget::CMpdElementWidget(QString text, QWidget *pwgt) : QPushButton(pwgt)
 {
     connect(&m_menu, &QMenu::triggered, this, &CMpdElementWidget::menuAction);
     connect(&m_menu, &QMenu::aboutToHide, this, &CMpdElementWidget::_menuClosed);
-    m_menu.addAction("Подсоединить");
-    m_menu.addAction("Отсоединить");
+    m_menu.addAction(CONNECT);
+    m_menu.addAction(DISCONNECT);
 
     _resetView(text);
 }
@@ -83,11 +86,10 @@ void CMpdElementWidget::_menuClosed()
 
 void CMpdElementWidget::menuAction(QAction *act)
 {
-    Q_UNUSED(act)
-
-    if (m_state == EState::eConnected) {
+    if (m_state == EState::eConnected && act->text() == DISCONNECT) {
         emit s_wantChangeState(EState::eDisconnected);
-    } else {
+    }
+    if (m_state == EState::eDisconnected && act->text() == CONNECT) {
         setActive(true);
         emit s_wantChangeState(EState::eConnected);
     }

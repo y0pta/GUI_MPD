@@ -88,9 +88,13 @@ void CProtocolTransmitter::serviceRequest(EServiceCommand cmd)
 
 void CProtocolTransmitter::readyRead()
 {
-    /// отделяем всю служебную информацию (все, что не в секции) и узнаем тип следующей секции
-    for (ESectionType type = separateNoSection(); type != eNoSection;
-         type = separateNoSection()) { ///пока есть, что читать
+    /// результат обработки последнего запроса
+    bool res = true;
+    ESectionType lastReq = requests.head().getType();
+
+    /// отделяем всю служебную информацию (все, что не в секции) и узнаем тип следующей
+    /// секции пока есть, что читать
+    for (ESectionType type = separateNoSection(); type != eNoSection; type = separateNoSection()) {
 
         SSection sect = SSection();
         /// читаем секцию
@@ -98,7 +102,7 @@ void CProtocolTransmitter::readyRead()
         /// нечего читать, секция не найдена
         if (rawSection.size() < 1)
             return;
-        /// заполняем
+        /// секция есть, заполняем
         switch (type) {
         case eCommon:
             sect = SCommonSection();
@@ -115,30 +119,38 @@ void CProtocolTransmitter::readyRead()
         fillSection(rawSection, sect);
 
         /// разделяем подтверждения и ответы на запросы
+
         if (SSection::isConfirmation(sect)) {
-            processConfirmation(sect);
+            res = processConfirmation(sect);
         } else {
             emit s_sectionRead(sect);
-            if (requests.head().getType() == sect.getType()) {
+            /// на serial-запрос должно приходить несколько секций, поэтому serial-запрос
+            /// завершается по тайм-ауту
+            if (lastReq == eSerial) {
+                res = false;
+            } else {
                 requests.dequeue();
                 m_timer.stop();
+                res = true;
             }
         }
     }
-    processNextRequest();
+    if (res)
+        processNextRequest();
 }
 
 void CProtocolTransmitter::requestTimeout()
 {
     auto request = requests.dequeue();
-    if (request.getType() != eDebug)
-        emit s_requestFailed(request);
-    else {
+    if (request.getType() == eDebug) {
         for (auto it = request.fields.begin(); it != request.fields.end(); it++) {
             if (!it.value().isEmpty())
                 emit s_serviceRequestFailed(it.key());
         }
-    }
+    } else if (request.getType() == eSerial)
+        return;
+    else
+        emit s_requestFailed(request);
 }
 
 /// возвращает имя секции, если дальше есть целая секция
@@ -196,7 +208,7 @@ QByteArray CProtocolTransmitter::readRawSection(QString sectionName)
     return sectData;
 }
 
-void fillSection(const QByteArray &rawSection, SSection &sect)
+void CProtocolTransmitter::fillSection(const QByteArray &rawSection, SSection &sect)
 {
     /// статистика не разделется на строки и идет целым куском
     if (sect.getType() == eStat) {
@@ -223,19 +235,18 @@ void fillSection(const QByteArray &rawSection, SSection &sect)
     dbg << sect;
 }
 
-void CProtocolTransmitter::processConfirmation(const SSection &sect)
+bool CProtocolTransmitter::processConfirmation(const SSection &sect)
 {
     QDebug dbg = qDebug();
     auto request = requests.head();
-    if (request.getType() == eNoSection)
-        return;
+    if (request.getType() != sect.getType())
+        return false;
     if (request.getType() == eDebug) {
-        processServiceConfirmation(sect);
-        return;
+        return processServiceConfirmation(sect);
     }
 
     auto listErrors = SSection::getErrorFields(sect);
-    if (listErrors.size() < 1 && request.getType() == sect.getType()) {
+    if (listErrors.size() < 1) {
         emit s_requestConfirmed(request);
         dbg << "Last request confirmed" << request;
     } else {
@@ -248,16 +259,14 @@ void CProtocolTransmitter::processConfirmation(const SSection &sect)
     /// запрос получил подтверждение, удаляем его из списка ожидания
     requests.dequeue();
     m_timer.stop();
+    return true;
 }
 
-void CProtocolTransmitter::processServiceConfirmation(const SSection &sect)
+bool CProtocolTransmitter::processServiceConfirmation(const SSection &sect)
 {
-    if (sect.getType() != eDebug)
-        return;
-
     auto request = requests.head();
     /// если предыдущий запрос был service
-    if (request.getType() == eDebug) {
+    if (request.getType() == eDebug && sect.getType() == eDebug) {
         /// ищем подтверждение
         for (auto it = sect.fields.begin(); it != sect.fields.end(); it++) {
             if (!it.value().isEmpty()) {
@@ -274,7 +283,9 @@ void CProtocolTransmitter::processServiceConfirmation(const SSection &sect)
         /// запрос обработан, удаляем его из списка ожидания
         requests.dequeue();
         m_timer.stop();
+        return true;
     }
+    return false;
 }
 
 void CProtocolTransmitter::processNextRequest()

@@ -24,6 +24,21 @@ public:
     CMainWindow(QWidget *parent = nullptr);
     ~CMainWindow();
 
+protected:
+    ///!устанавливает вид страницы
+    void setPage(EPage page);
+    ///! устанавливает вид настроек (только для eMainPage)
+    void setMode(ESettingsMode mode);
+    ///! обновляет комбо-бокс с доступными портами (только для eStartPage)
+    void updateAvaliablePorts();
+    ///! заполняет поля настроек для заданного интерфейса (берет их из  m_setts)
+    void loadSettingsFields(QString nameElement);
+    ///! Подсвечивает непринятые настройки, обесцвечивает принятые
+    void loadSettingStatus(const QList<QString> &errorFields);
+
+    ///!
+    void prepareProtocol();
+
     // GUI - functions
 private slots:
     ///   Обработчики нажатий на графику
@@ -39,29 +54,35 @@ private slots:
     void on_pb_accept_clicked();
     void on_pb_stat_clicked();
     void on_pb_edit_clicked();
+    void on_pushButton_clicked();
+    void on_pb_refreshStat_clicked();
+    void on_pb_resetStat_clicked();
+    void on_pb_applyMode_clicked();
+    void on_cb_dumpOn_stateChanged(int arg1);
+    void on_pb_clearErrors_clicked();
+    void on_pb_clearFlash_clicked();
     void enableSettings(bool st);
 
     //! пользователь захотел подключить/отключить интерфейс
     void wantChangeStateReceived(QString ifaceName, EState st);
-    //! чтение настроек, пришедших с МПД
-    void readyRead();
-    //! разбор подтверждений (ответов)
-    void processConfirmation(const SSection &sect);
-    //! добавление текущих настроек (МПД прислал текущие настройки, нужно их обработать)
+    //! добавление/обновление текущих настроек на sect
     void addSetting(const SSection &sect);
+    //! применение настройки к внешнему виду вид
+    void processSetting(const SSection &sect);
     //! порт отключили
     void serialRemoved();
     //! ошибка в порте
     void setError(QString errorStr);
-
     //! заполняет поля настроек для serial-интерфейсов
     void fillSerialFieds(const SSection &sect);
+    //! выделяет неподтвержденные поля настроек для serial-интерфейсов
+    void colorFields(const QList<QString> &errorNames);
 
     ///***слоты сообщений от порта и протокола
     ///! обработка ответа на get-запрос
-    void sectionRead(const SSection &sect);
+    void setSection(const SSection &sect);
     ///! обработка полученной отладочной информации
-    void debugInfo(const QString &str);
+    void setDebugInfo(const QString &str);
     ///! обработка подтверждения set-запроса или отладочного запроса
     void requestConfirmed(const SSection &sect);
     ///! время ожидания запроса превышено
@@ -74,25 +95,6 @@ private slots:
     void serviceRequestConfirmed(QString name);
 
 private:
-    ///!устанавливает вид страницы
-    void setPage(EPage page);
-    ///! устанавливает вид настроек (только для eMainPage)
-    void setMode(ESettingsMode mode);
-    ///! обновляет комбо-бокс с доступными портами (только для eStartPage)
-
-    void updateAvaliablePorts();
-    ///! заполняет поля настроек для заданного интерфейса (берет их из  m_setts)
-    void loadSettingsFields(QString nameElement);
-    ///! Подсвечивает непринятые настройки, обесцвечивает принятые
-    void loadSettingStatus(const QList<QString> &errorFields);
-    ///! добавляет настройку в m_setts или заменяет уже существующую
-    void confirmSetting(const SSettings &sett);
-    ///! запрашивает от МПД текущие настройки
-    void requestCurrentSettings(ESettingsType type = eNoSection);
-
-    ///!
-    void prepareProtocol();
-
 private:
     Ui::CMainWindow *ui;
     //!*** Fields for GUI

@@ -63,3 +63,8 @@ void CSerialPort::setProtocol(CProtocolTransmitter *pt)
 {
     pt->setDevice(&m_port);
 }
+
+bool CSerialPort::isOpen()
+{
+    return m_port.isOpen();
+}

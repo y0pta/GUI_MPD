@@ -21,7 +21,8 @@ SOURCES += \
     cmpdwidget.cpp \
     cprotocoltransmitter.cpp \
     cserialport.cpp \
-    main.cpp
+    main.cpp \
+    ssettings.cpp
 
 HEADERS += \
     cmainwindow.h \
@@ -30,7 +31,7 @@ HEADERS += \
     cprotocoltransmitter.h \
     cserialport.h \
     ssettings.h \
-    tests/tests_ccmdtransmitter.h
+
 
 FORMS += \
     cmainwindow.ui

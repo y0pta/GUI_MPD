@@ -1,44 +1,25 @@
 #include "cmainwindow.h"
 #include "ui_cmainwindow.h"
 #include <QMessageBox>
+#include <QSignalMapper>
 
 CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMainWindow)
 {
     ui->setupUi(this);
-    //    setStyleSheet(
-    //            "QMainWindow { background-color: #9C9C9C; }\n QPushButton { background-color: "
-    //            "#979797; }\n QComboBox { color: white; background-color: #676767}\n QLineEdit { "
-    //            "background-color: #676767 }\n QMenu {color: white; background-color:
-    //            #676767}\n");
-    ui->gb_mpdModel->setStyleSheet(
-            "QGroupBox {color: white; background-color: #A7A7A7; border: solid; }");
-    //Настраиваем виджет с моделью
+
+    ///Настраиваем виджет с моделью
     ui->wgt_model->addElements(3, { SERIAL_IFACE_RADIO, SERIAL_IFACE_RS232, SERIAL_IFACE_RS485 });
-    auto sett = SSerialSection::getSerialDefault(SERIAL_IFACE_RADIO);
-    sett.fields[SERIAL_BAUDRATE] = "9600";
-    sett.fields[SERIAL_PARITY] = "odd";
-    m_sects.append(sett);
-    m_sects.append(SSerialSection::getSerialDefault(SERIAL_IFACE_RS232));
-    m_sects.append(SSerialSection::getSerialDefault(SERIAL_IFACE_RS485));
     connect(ui->wgt_model, &CMpdWidget::s_clicked, this, &CMainWindow::on_wgt_model_clicked);
     connect(ui->wgt_model, &CMpdWidget::s_wantChangeState, this,
             &CMainWindow::wantChangeStateReceived);
-
+    /// настройка порта для настройки
     updateAvaliablePorts();
-    m_page = eMainPage;
-    setPage(eMainPage);
-    ui->wgt_model->changeState(SERIAL_IFACE_RADIO, eConnected);
-    ui->wgt_model->changeState(SERIAL_IFACE_RS232, eError);
-
     connect(&m_serial, &CSerialPort::s_avaliablePortsChanged, this,
             &CMainWindow::updateAvaliablePorts);
+    m_page = eMainPage;
+    setPage(eMainPage);
 
-    //    ui->wgt_model->s_clicked("Rs-232");
-    //    setMode(ESettingsMode::eViewMode);
-
-    // user data
-    QString str = SERIAL_PARITY;
-
+    /// Назначаем label'ам форм property, чтобы было удобнее заполнять
     ui->lb_parity->setProperty(FIELD_NAME, QString(SERIAL_PARITY));
     ui->lb_baudRate->setProperty(FIELD_NAME, QString(SERIAL_BAUDRATE));
     ui->lb_dataBits->setProperty(FIELD_NAME, QString(SERIAL_DATABITS));
@@ -46,7 +27,26 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
     ui->lb_writeDelay->setProperty(FIELD_NAME, QString(SERIAL_WRITEDELAY));
     ui->lb_waitPacketTime->setProperty(FIELD_NAME, QString(SERIAL_WAITPACKETTIME));
 
-    setMode(eEditMode);
+    /// Внешний вид для теста
+    //    ui->wgt_model->changeState(SERIAL_IFACE_RADIO, eConnected);
+    //    ui->wgt_model->changeState(SERIAL_IFACE_RS232, eError);
+
+    auto sett = SSerialSection::getSerialDefault(SERIAL_IFACE_RADIO);
+    sett.fields[SERIAL_BAUDRATE] = "9600";
+    sett.fields[SERIAL_PARITY] = "odd";
+    addSetting(sett);
+    addSetting(SSerialSection::getSerialDefault(SERIAL_IFACE_RS232));
+    addSetting(SSerialSection::getSerialDefault(SERIAL_IFACE_RS485));
+
+    SCommonSection cs;
+    cs.fields[COMMON_MODE] = COMMON_MODE_VAL[eSms];
+    addSetting(cs);
+
+    SStatSection ss;
+    ss.fields[STAT_TEXT] = "swdsdasdsad\nsdasdsadsad\n";
+    addSetting(ss);
+
+    setMode(eViewMode);
     sett.fields[SERIAL_BAUDRATE] = "1200";
     sett.fields[SERIAL_PARITY] = "fgdfg";
 
@@ -63,6 +63,7 @@ void CMainWindow::on_wgt_model_clicked(QString nameEl)
     if (m_mode != eEditMode) {
         loadSettingsFields(nameEl);
         setMode(eViewMode);
+        colorFields({});
     }
 }
 
@@ -76,11 +77,15 @@ void CMainWindow::setPage(EPage page)
         ui->gb_start->setVisible(false);
         ui->gb_mpdModel->setVisible(true);
         ui->pb_finishConfigure->setVisible(true);
+        ui->left_tab->setVisible(true);
+        ui->lb_mode->setVisible(true);
     }
     if (page == eStartPage) {
         ui->gb_start->setVisible(true);
+        ui->left_tab->setVisible(false);
         ui->gb_mpdModel->setVisible(false);
         ui->pb_finishConfigure->setVisible(false);
+        ui->lb_mode->setVisible(false);
     }
 }
 
@@ -164,6 +169,7 @@ void CMainWindow::on_pb_startConfigure_clicked()
         m_serial.setProtocol(m_protocol);
         m_protocol->getRequest(eSerial);
         m_protocol->getRequest(eCommon);
+        m_protocol->getRequest(eStat);
 
         setPage(eMainPage);
     }
@@ -204,58 +210,18 @@ void CMainWindow::wantChangeStateReceived(QString ifaceName, EState st)
     if (st == eConnected) {
         setMode(eEditMode);
     } else if (st == eDisconnected) {
-        SSerialSection sett;
-        sett.fields[SERIAL_IFACE] = ifaceName;
-        sett.fields[SERIAL_STATUS] = "off";
-        m_serial.sendData(sett);
-        ui->wgt_model->changeState(ifaceName, eDisconnected);
-    }
-}
+        if (m_protocol && m_serial.isOpen()) {
+            SSerialSection sett;
+            sett.fields[SERIAL_IFACE] = ifaceName;
+            sett.fields[SERIAL_STATUS] = "off";
 
-void CMainWindow::readyRead()
-{
-    setMode(eViewMode);
-    //читаем все настройки и разбираем их на подтвержения и ответы на запросы
-    auto setts = m_serial.readAllSettings();
-    for (auto sett : setts) {
-        //Если подтверждение
-        if (sett.isConfirmation())
-            processConfirmation(sett);
-        //Если пришли текущие настройки МПД
-        else
-            setCurrentSetting(sett);
-    }
-}
-
-void CMainWindow::processConfirmation(const SSection &sett)
-{
-    auto type = sett.getType();
-    // если есть ошибки, не связанные с конкретной настройкой, выводим в строку
-    setError(sett.getErrorsStr());
-
-    auto listErrorFields = sett.getErrorFields();
-
-    //если нет ошибок, то просто переводим настройку из листа ожидания в основную массу
-    if (listErrorFields.size() < 1) {
-        confirmSetting(sett);
-        return;
-    }
-    // ошибки common и serial рассматриваем отдельно
-    switch (type) {
-    case eCommon:
-        break;
-    case eSerial:
-        loadSettingStatus(listErrorFields);
-        break;
-    default:
-        break;
+            m_protocol->setRequest(sett);
+        }
     }
 }
 
 void CMainWindow::addSetting(const SSection &sett)
 {
-    //ВАЖНО! пока нет обработчика для eCommon
-    //Добавляем или изменяем m_sects
     for (auto it = m_sects.begin(); it != m_sects.end(); it++) {
         if (it->fields.contains(SERIAL_IFACE))
             if (it->fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
@@ -263,6 +229,32 @@ void CMainWindow::addSetting(const SSection &sett)
             }
     }
     m_sects.push_back(sett);
+    processSetting(sett);
+}
+
+void CMainWindow::processSetting(const SSection &sect)
+{
+    switch (sect.getType()) {
+    case eSerial:
+        colorFields({});
+        fillSerialFieds(sect);
+        break;
+    case eCommon:
+        ui->lb_mode->setText(sect.fields[COMMON_MODE]);
+        if (sect.fields[COMMON_MODE] == COMMON_MODE_VAL[eSms])
+            ui->rb_sms->setChecked(true);
+        else
+            ui->rb_clarity->setChecked(true);
+        if (sect.fields[COMMON_DUMPSTATUS] == STATUS_ON)
+            ui->cb_dumpOn->setChecked(true);
+        else
+            ui->cb_dumpOn->setChecked(false);
+        break;
+    case eStat:
+        ui->txt_statistics->append(sect.fields[STAT_TEXT]);
+    default:
+        break;
+    }
 }
 
 void CMainWindow::serialRemoved()
@@ -298,46 +290,53 @@ void CMainWindow::fillSerialFieds(const SSection &sect)
         ui->ln_waitPacketTime->setText(sect.fields[SERIAL_WAITPACKETTIME]);
 }
 
-void CMainWindow::sectionRead(const SSection &sect)
+void CMainWindow::colorFields(const QList<QString> &errorNames)
 {
-    switch (sect.getType()) {
-    case eSerial:
-        fillSerialFieds(sect);
-        break;
-    case eCommon:
-        ui->lb_mode->setText(sect.fields[COMMON_MODE]);
-        break;
-    default:
-        break;
+    /// Идем по всем полям формы с настройками, подсвечиваем те, которые ошибочные. Обесцвечиваем не
+    /// ошибочные
+    for (int i = 0; i < ui->fl_unitSettings->rowCount(); i++) {
+        auto label = ui->fl_unitSettings->itemAt(i, QFormLayout::ItemRole::LabelRole)->widget();
+        auto fieldName = label->property(FIELD_NAME).toString();
+        qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: black }; ");
+
+        for (auto errorField : errorNames) {
+            if (fieldName == errorField)
+                qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: red }; }");
+        }
     }
-    addSetting(sect);
 }
 
-void CMainWindow::debugInfo(const QString &str)
+void CMainWindow::setSection(const SSection &sect)
+{
+    addSetting(sect);
+    setMode(m_mode);
+}
+
+void CMainWindow::setDebugInfo(const QString &str)
 {
     ui->txt_debug->append(str);
 }
 
 void CMainWindow::requestConfirmed(const SSection &sect)
 {
-    if (sect.getType() == eDebug)
-        for (auto field : sect.fields) {
-            if (!field.isEmpty())
-        }
-
-    else
-        ui->lb_status->setText("Время ожидания подтверждения превышено");
     addSetting(sect);
+    setMode(m_mode);
+    if (sect.getType() == eSerial)
+        ui->wgt_model->changeState(sect.fields[SERIAL_IFACE],
+                                   STATE_TYPES.key(sect.fields[SERIAL_STATUS]));
 }
 
 void CMainWindow::requestFailed(const SSection &sect)
 {
-    ui->lb_status->setText("Время ожидания подтверждения превышено");
+    if (sect.getType() == eStat) {
+        ui->txt_statistics->setText("Время ожидания подтверждения превышено");
+    } else
+        ui->lb_status->setText("Время ожидания подтверждения превышено");
 }
 
 void CMainWindow::serviceRequestFailed(QString name)
 {
-    ui->lb_status->setText("Запрос " + name + " не выполнен");
+    // ui->lb_status->setText("Запрос " + sect.fields[] + " не выполнен");
 }
 
 void CMainWindow::serviceRequestConfirmed(QString name)
@@ -347,17 +346,7 @@ void CMainWindow::serviceRequestConfirmed(QString name)
 
 void CMainWindow::requestError(const QList<QString> &errorFields)
 {
-    // Идем по всем полям формы, подсвечиваем те, которые ошибочные
-    for (int i = 0; i < ui->fl_unitSettings->rowCount(); i++) {
-        auto label = ui->fl_unitSettings->itemAt(i, QFormLayout::ItemRole::LabelRole)->widget();
-        auto fieldName = label->property(FIELD_NAME).toString();
-        qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: black }; ");
-
-        for (auto errorField : errorFields) {
-            if (fieldName == errorField)
-                qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: red }; }");
-        }
-    }
+    colorFields(errorFields);
 }
 
 void CMainWindow::on_pb_finishConfigure_clicked()
@@ -417,35 +406,17 @@ void CMainWindow::loadSettingStatus(const QList<QString> &errorFields)
     }
 }
 
-void CMainWindow::confirmSetting(const SSection &sett)
-{
-    setCurrentSetting(sett);
-    // удаляем настройку из листа ожидания подтверждения (m_processingSetts)
-    for (auto it = m_processingSetts.begin(); it != m_processingSetts.end(); it++) {
-        if (it->fields.contains(SERIAL_IFACE))
-            if (it->fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
-                m_processingSetts.erase(it);
-            }
-    }
-}
-
-void CMainWindow::requestCurrentSettings(ESettingsType type)
-{
-    m_serial.requestData(ESettingsType::eCommon);
-    m_serial.requestData(ESettingsType::eSerial);
-}
-
 void CMainWindow::prepareProtocol()
 {
     if (!m_protocol)
         m_protocol = new CProtocolTransmitter(this);
 
-    connect(m_protocol, &CProtocolTransmitter::s_sectionRead, this, &CMainWindow::sectionRead);
-    connect(m_protocol, &CProtocolTransmitter::s_debugInfo, this, &CMainWindow::debugInfo);
+    connect(m_protocol, &CProtocolTransmitter::s_sectionRead, this, &CMainWindow::setSection);
+    connect(m_protocol, &CProtocolTransmitter::s_debugInfo, this, &CMainWindow::setDebugInfo);
     connect(m_protocol, &CProtocolTransmitter::s_requestError, this, &CMainWindow::requestError);
-    connect(m_protocol, &CProtocolTransmitter::s_requestFailed, this, &CMainWindow::debugInfo);
+    connect(m_protocol, &CProtocolTransmitter::s_requestFailed, this, &CMainWindow::requestFailed);
     connect(m_protocol, &CProtocolTransmitter::s_requestConfirmed, this,
-            &CMainWindow::requestError);
+            &CMainWindow::requestConfirmed);
     connect(m_protocol, &CProtocolTransmitter::s_serviceRequestFailed, this,
             &CMainWindow::serviceRequestFailed);
     connect(m_protocol, &CProtocolTransmitter::s_serviceRequestConfirmed, this,
@@ -454,6 +425,9 @@ void CMainWindow::prepareProtocol()
 
 void CMainWindow::on_pb_accept_clicked()
 {
+    if (!m_protocol || !m_serial.isOpen())
+        return;
+
     setMode(eWaitMode);
     ui->wgt_model->freezeExcept();
     SSerialSection sett;
@@ -465,14 +439,67 @@ void CMainWindow::on_pb_accept_clicked()
     sett.fields[SERIAL_STOPBITS] = ui->cb_stopBits->currentText();
     sett.fields[SERIAL_WRITEDELAY] = ui->ln_writeDelay->text();
     sett.fields[SERIAL_WAITPACKETTIME] = ui->ln_waitPacketTime->text();
-    // добавили в лист ожидания
-    m_processingSetts.append(sett);
 
-    m_serial.sendData(sett);
-    ui->wgt_model->changeState(iface, eConnected);
+    m_protocol->setRequest(sett);
 }
 
 void CMainWindow::on_pb_stat_clicked()
 {
-    m_protocol->getRequest(eStat);
+    if (m_protocol && m_serial.isOpen())
+        m_protocol->getRequest(eStat);
+}
+
+void CMainWindow::on_pushButton_clicked()
+{
+    ui->txt_debug->clear();
+}
+
+void CMainWindow::on_pb_refreshStat_clicked()
+{
+    if (m_protocol && m_serial.isOpen())
+        m_protocol->getRequest(eStat);
+    ui->txt_statistics->clear();
+}
+
+void CMainWindow::on_pb_resetStat_clicked()
+{
+    if (m_protocol && m_serial.isOpen())
+        m_protocol->serviceRequest(eClearStat);
+    ui->txt_statistics->clear();
+}
+
+void CMainWindow::on_pb_applyMode_clicked()
+{
+    if (m_protocol && m_serial.isOpen()) {
+        SCommonSection sect;
+        if (ui->rb_sms->isChecked())
+            sect.fields[COMMON_MODE] = COMMON_MODE_VAL[eSms];
+        if (ui->rb_clarity->isChecked())
+            sect.fields[COMMON_MODE] = COMMON_MODE_VAL[eClarity];
+        m_protocol->setRequest(sect);
+    }
+}
+
+void CMainWindow::on_cb_dumpOn_stateChanged(int arg1)
+{
+    if (m_protocol && m_serial.isOpen()) {
+        SCommonSection sect;
+        if (ui->cb_dumpOn->checkState() == Qt::Checked)
+            sect.fields[COMMON_DUMPSTATUS] = STATUS_ON;
+        else
+            sect.fields[COMMON_DUMPSTATUS] = STATUS_OFF;
+        m_protocol->setRequest(sect);
+    }
+}
+
+void CMainWindow::on_pb_clearErrors_clicked()
+{
+    if (m_protocol && m_serial.isOpen())
+        m_protocol->serviceRequest(eClearErrors);
+}
+
+void CMainWindow::on_pb_clearFlash_clicked()
+{
+    if (m_protocol && m_serial.isOpen())
+        m_protocol->serviceRequest(eClearFlash);
 }

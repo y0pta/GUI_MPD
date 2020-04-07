@@ -31,6 +31,8 @@ public:
 
     void setProtocol(CProtocolTransmitter *pt);
 
+    bool isOpen();
+
 private:
     void checkAvaliablePorts();
 private slots:

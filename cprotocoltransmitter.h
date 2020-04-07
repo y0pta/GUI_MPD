@@ -6,7 +6,6 @@
 #include <QTimer>
 #include <QIODevice>
 
-/// На service-запросы нет таймаута
 class CProtocolTransmitter : public QObject
 {
     Q_OBJECT
@@ -36,7 +35,7 @@ signals:
     /// set-запрос SSection не подтвержден (время ожидания превышено)
     void s_requestFailed(const SSection &sect);
     /// set-запрос SSection не подтвержден (ошибки)
-    void s_requestError(QList<QString> errorFields);
+    void s_requestError(const QList<QString> &errorFields);
     /// service-запрос не потвержден
     void s_serviceRequestFailed(QString name);
     /// service-запрос потвержден
@@ -49,15 +48,11 @@ protected:
     QByteArray readRawSection(QString sectionName);
     /// заполняет секцию заданного типа  из "сырых" данных
     void fillSection(const QByteArray &rawSection, SSection &sect);
-    /// обрабатывает все подтверждения (подтверждено, не подтверждено)
-    void processConfirmation(const SSection &sect);
+    /// обрабатывает все подтверждения (подтверждено, не подтверждено), возвращает true, если
+    /// подтверждение соответствует запросу
+    bool processConfirmation(const SSection &sect);
     /// обрабатывает service-подтверждения (подтверждено, не подтверждено)
-    void processServiceConfirmation(const SSection &sect);
-    ///Имя следующего заголовка !!!Просто берет первое встречающееся слово, совпадающее со
-    ///словарными именами секций
-    QString nextSectionHeader(const QByteArray &data);
-
-private:
+    bool processServiceConfirmation(const SSection &sect);
     ///обрабатывает следующий в очереди запрос
     void processNextRequest();
 
