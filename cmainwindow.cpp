@@ -3,7 +3,9 @@
 #include <QMessageBox>
 #include <QSignalMapper>
 
-CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMainWindow)
+CMainWindow::CMainWindow(QWidget* parent)
+    : QMainWindow(parent)
+    , ui(new Ui::CMainWindow)
 {
     ui->setupUi(this);
 
@@ -11,13 +13,10 @@ CMainWindow::CMainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::CMai
     ui->wgt_model->addElements(3, { SERIAL_IFACE_RADIO, SERIAL_IFACE_RS232, SERIAL_IFACE_RS485 });
     connect(ui->wgt_model, &CMpdWidget::s_clicked, this, &CMainWindow::showSettings);
     connect(ui->wgt_model, &CMpdWidget::s_wantChangeState, this,
-            &CMainWindow::wantChangeStateReceived);
-    /// настройка порта для настройки
+        &CMainWindow::wantChangeStateReceived);
+    /// настройка порта для настройки МПД
     updateAvaliablePorts();
-    connect(&m_serial, &CSerialPort::s_avaliablePortsChanged, this,
-            &CMainWindow::updateAvaliablePorts);
-    m_page = eMainPage;
-    setPage(eMainPage);
+    setPage(eStartPage);
 
     /// Назначаем label'ам форм property, чтобы было удобнее заполнять
     ui->lb_parity->setProperty(FIELD_NAME, QString(SERIAL_PARITY));
@@ -58,33 +57,35 @@ CMainWindow::~CMainWindow()
     delete ui;
 }
 
-void CMainWindow::setPage(EPage page)
+void CMainWindow::setPage(EPage p)
 {
+    page = p;
     ui->gb_settings->setVisible(false);
     ui->lb_status->setVisible(true);
     ui->lb_status->clear();
 
-    if (page == eMainPage) {
+    if (p == eMainPage) {
         ui->gb_start->setVisible(false);
         ui->gb_mpdModel->setVisible(true);
         ui->pb_finishConfigure->setVisible(true);
         ui->left_tab->setVisible(true);
         ui->lb_mode->setVisible(true);
+        showSettings("RS-232");
     }
-    if (page == eStartPage) {
+    if (p == eStartPage) {
         ui->gb_start->setVisible(true);
         ui->left_tab->setVisible(false);
         ui->gb_mpdModel->setVisible(false);
         ui->pb_finishConfigure->setVisible(false);
         ui->lb_mode->setVisible(false);
-        showSettings("RS-232");
     }
 }
 
-void CMainWindow::setMode(ESettingsMode mode)
+void CMainWindow::setMode(ESettingsMode m)
 {
-    if (m_page == eMainPage) {
-        if (mode == eViewMode) {
+    if (getPage() == eMainPage) {
+        mode = m;
+        if (m == eViewMode) {
             ui->pb_edit->setVisible(true);
             ui->pb_accept->setVisible(false);
             ui->pb_cancel->setVisible(false);
@@ -93,8 +94,8 @@ void CMainWindow::setMode(ESettingsMode mode)
             ui->pb_closeSettings->setEnabled(true);
 
             enableSettings(false);
-            setCursor(Qt::ArrowCursor);
-        } else if (mode == eEditMode) {
+            //setCursor(Qt::ArrowCursor);
+        } else if (m == eEditMode) {
             ui->pb_edit->setVisible(false);
             ui->pb_accept->setVisible(true);
             ui->pb_cancel->setVisible(true);
@@ -103,9 +104,9 @@ void CMainWindow::setMode(ESettingsMode mode)
             ui->pb_closeSettings->setEnabled(true);
 
             enableSettings(true);
-            setCursor(Qt::ArrowCursor);
+            // setCursor(Qt::ArrowCursor);
 
-        } else if (mode == eWaitMode) {
+        } else if (m == eWaitMode) {
             ui->pb_edit->setVisible(false);
             ui->pb_accept->setVisible(false);
             ui->pb_cancel->setVisible(false);
@@ -114,18 +115,17 @@ void CMainWindow::setMode(ESettingsMode mode)
             ui->pb_closeSettings->setEnabled(false);
 
             enableSettings(false);
-            setCursor(Qt::WaitCursor);
-        } else if (mode == eHidden) {
+            // setCursor(Qt::WaitCursor);
+        } else if (m == eHidden) {
             ui->gb_settings->setVisible(false);
-            setCursor(Qt::ArrowCursor);
+            // setCursor(Qt::ArrowCursor);
         }
-        m_mode = mode;
     }
 }
 
 void CMainWindow::updateAvaliablePorts()
 {
-    if (m_page == eStartPage) {
+    if (getPage() == eStartPage) {
         //очищаем все
         ui->cb_avaliablePorts->clear();
         // добавляем новые порты
@@ -207,19 +207,23 @@ void CMainWindow::wantChangeStateReceived(QString ifaceName, EState st)
     }
 }
 
-void CMainWindow::addSetting(const SSection &sett)
+void CMainWindow::addSetting(const SSection& sett)
 {
-    for (auto it = m_sects.begin(); it != m_sects.end(); it++) {
-        if (it->fields.contains(SERIAL_IFACE))
-            if (it->fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
-                m_sects.erase(it);
+    int i = 0;
+    for (; i < m_sects.size(); i++) {
+        if (m_sects[i].fields.contains(SERIAL_IFACE))
+            if (m_sects[i].fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
+                m_sects[i] = sett;
+                break;
             }
     }
-    m_sects.push_back(sett);
+    if (i == m_sects.size())
+        m_sects.push_back(sett);
+
     processSetting(sett);
 }
 
-void CMainWindow::processSetting(const SSection &sect)
+void CMainWindow::processSetting(const SSection& sect)
 {
     switch (sect.getType()) {
     case eSerial:
@@ -258,11 +262,13 @@ void CMainWindow::setError(QString errorStr)
     ui->lb_status->setText(errorStr);
 }
 
-void CMainWindow::fillSerialFieds(const SSection &sect)
+void CMainWindow::fillSerialFieds(const SSection& sect)
 {
     if (sect.getType() != eSerial)
         return;
 
+    if (!sect.fields[SERIAL_STATUS].isEmpty())
+        ui->wgt_model->changeState(sect.fields[SERIAL_IFACE], STATE_TYPES.key(sect.fields[SERIAL_STATUS]));
     if (!sect.fields[SERIAL_PARITY].isEmpty())
         ui->cb_parity->setCurrentText(sect.fields[SERIAL_PARITY]);
     if (!sect.fields[SERIAL_BAUDRATE].isEmpty())
@@ -277,69 +283,75 @@ void CMainWindow::fillSerialFieds(const SSection &sect)
         ui->ln_waitPacketTime->setText(sect.fields[SERIAL_WAITPACKETTIME]);
 }
 
-void CMainWindow::colorFields(const QList<QString> &errorNames)
+void CMainWindow::colorFields(const QList<QString>& errorNames)
 {
     /// Идем по всем полям формы с настройками, подсвечиваем те, которые ошибочные. Обесцвечиваем не
     /// ошибочные
     for (int i = 0; i < ui->fl_unitSettings->rowCount(); i++) {
         auto label = ui->fl_unitSettings->itemAt(i, QFormLayout::ItemRole::LabelRole)->widget();
         auto fieldName = label->property(FIELD_NAME).toString();
-        qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: black }; ");
+        qobject_cast<QLabel*>(label)->setStyleSheet("QLabel { color: black }; ");
 
         for (auto errorField : errorNames) {
             if (fieldName == errorField)
-                qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: red }; }");
+                qobject_cast<QLabel*>(label)->setStyleSheet("QLabel { color: red }; }");
         }
     }
 }
 
-void CMainWindow::setSection(const SSection &sect)
+void CMainWindow::setSection(const SSection& sect)
 {
     addSetting(sect);
-    setMode(m_mode);
+    //   ui->txt_debug->append("   Section received: "+getStr(sect.getType()));
 }
 
-void CMainWindow::setDebugInfo(const QString &str)
+void CMainWindow::setDebugInfo(const QString& str)
 {
     ui->txt_debug->append(str);
 }
 
-void CMainWindow::requestConfirmed(const SSection &sect)
+void CMainWindow::requestConfirmed(const SSection& sect)
 {
     addSetting(sect);
-    setMode(m_mode);
+    setMode(eViewMode);
     if (sect.getType() == eSerial)
         ui->wgt_model->changeState(sect.fields[SERIAL_IFACE],
-                                   STATE_TYPES.key(sect.fields[SERIAL_STATUS]));
+            STATE_TYPES.key(sect.fields[SERIAL_STATUS]));
+    ui->txt_debug->append("   Request approved: " + getStr(sect.getType()));
 }
 
-void CMainWindow::requestFailed(const SSection &sect)
+void CMainWindow::requestFailed(const SSection& sect)
 {
     if (sect.getType() == eStat) {
-        ui->txt_statistics->setText("Время ожидания подтверждения превышено");
+        ui->txt_statistics->append("Время ожидания подтверждения превышено");
     } else
         ui->lb_status->setText("Время ожидания подтверждения превышено");
+    setMode(eViewMode);
 }
 
 void CMainWindow::serviceRequestFailed(QString name)
 {
-    // ui->lb_status->setText("Запрос " + sect.fields[] + " не выполнен");
+    ui->txt_debug->append("  Запрос " + name + " не выполнен");
+    ui->lb_status->setText("Запрос " + name + " не выполнен");
 }
 
 void CMainWindow::serviceRequestConfirmed(QString name)
 {
+    ui->txt_debug->append("  Запрос " + name + " выполнен");
     ui->lb_status->setText("Запрос " + name + " выполнен");
 }
 
-void CMainWindow::requestError(const QList<QString> &errorFields)
+void CMainWindow::requestError(const QList<QString>& errorFields)
 {
+    ui->txt_debug->append("   Request failed: ");
+    for (auto err : errorFields)
+        ui->txt_debug->append("     " + err);
     colorFields(errorFields);
 }
 
 void CMainWindow::on_pb_finishConfigure_clicked()
 {
-    QMessageBox *box =
-            new QMessageBox(QMessageBox::Warning, "Завершить настройку МПД", DIALOG_FINISH_EDITING);
+    QMessageBox* box = new QMessageBox(QMessageBox::Warning, "Завершить настройку МПД", DIALOG_FINISH_EDITING);
     auto yes = box->addButton("Да", QMessageBox::AcceptRole);
     box->addButton("Отмена", QMessageBox::RejectRole);
     box->exec();
@@ -378,17 +390,17 @@ void CMainWindow::loadSettingsFields(QString nameElement)
     ui->ln_waitPacketTime->setText(sett.fields[SERIAL_WAITPACKETTIME]);
 }
 
-void CMainWindow::loadSettingStatus(const QList<QString> &errorFields)
+void CMainWindow::loadSettingStatus(const QList<QString>& errorFields)
 {
     // Идем по всем полям формы, подсвечиваем те, которые ошибочные
     for (int i = 0; i < ui->fl_unitSettings->rowCount(); i++) {
         auto label = ui->fl_unitSettings->itemAt(i, QFormLayout::ItemRole::LabelRole)->widget();
         auto fieldName = label->property(FIELD_NAME).toString();
-        qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: black }; ");
+        qobject_cast<QLabel*>(label)->setStyleSheet("QLabel { color: black }; ");
 
         for (auto errorField : errorFields) {
             if (fieldName == errorField)
-                qobject_cast<QLabel *>(label)->setStyleSheet("QLabel { color: red }; }");
+                qobject_cast<QLabel*>(label)->setStyleSheet("QLabel { color: red }; }");
         }
     }
 }
@@ -403,19 +415,18 @@ void CMainWindow::prepareProtocol()
     connect(m_protocol, &CProtocolTransmitter::s_requestError, this, &CMainWindow::requestError);
     connect(m_protocol, &CProtocolTransmitter::s_requestFailed, this, &CMainWindow::requestFailed);
     connect(m_protocol, &CProtocolTransmitter::s_requestConfirmed, this,
-            &CMainWindow::requestConfirmed);
+        &CMainWindow::requestConfirmed);
     connect(m_protocol, &CProtocolTransmitter::s_serviceRequestFailed, this,
-            &CMainWindow::serviceRequestFailed);
+        &CMainWindow::serviceRequestFailed);
     connect(m_protocol, &CProtocolTransmitter::s_serviceRequestConfirmed, this,
-            &CMainWindow::serviceRequestConfirmed);
+        &CMainWindow::serviceRequestConfirmed);
 }
 
-void CMainWindow::showSettings(const QString &nameEl)
+void CMainWindow::showSettings(const QString& nameEl)
 {
-    if (m_mode != eEditMode) {
+    if (getMode() != eEditMode) {
         loadSettingsFields(nameEl);
         setMode(eViewMode);
-        colorFields({});
     }
 }
 
@@ -425,7 +436,7 @@ void CMainWindow::on_pb_accept_clicked()
         return;
 
     setMode(eWaitMode);
-    ui->wgt_model->freezeExcept();
+    ui->wgt_model->unfreezeAll();
     SSerialSection sett;
     QString iface = ui->lb_ifaceName->text();
     sett.fields[SERIAL_IFACE] = iface;
@@ -495,4 +506,10 @@ void CMainWindow::on_pb_clearFlash_clicked()
 void CMainWindow::on_pb_clearDebug_clicked()
 {
     ui->txt_debug->clear();
+}
+
+void CMainWindow::on_pb_startUpdate_clicked()
+{
+    m_serial.avaliablePorts();
+    updateAvaliablePorts();
 }

@@ -41,5 +41,9 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
+LIBS += -L"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.18362.0/um/x86" -lshell32
+
+message($$LIBS)
+
 RESOURCES += \
     resources.qrc

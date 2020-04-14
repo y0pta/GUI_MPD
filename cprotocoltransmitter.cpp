@@ -1,12 +1,13 @@
 #include "cprotocoltransmitter.h"
-#include <QList>
-#include <stdlib.h>
 #include <QDebug>
+#include <QList>
+#include <QtAlgorithms>
+#include <stdlib.h>
 // максимальное время ожидания(мс)
-const int TIMEOUT = 1000;
+const int TIMEOUT = 2000;
 
 ///Проверка на вхождение заголовка секции в data. Если заголовка нет, веозврат -1. В параметре
-int indexOfSectionHeader(const QByteArray &data, ESectionType &type)
+int indexOfSectionHeader(const QByteArray& data, ESectionType& type)
 {
     ///позиция - длина заголовка
     QMap<int, ESectionType> headers;
@@ -27,19 +28,23 @@ int indexOfSectionHeader(const QByteArray &data, ESectionType &type)
     }
 }
 
-CProtocolTransmitter::CProtocolTransmitter(QIODevice *dev, QObject *parent) : QObject(parent)
+CProtocolTransmitter::CProtocolTransmitter(QIODevice* dev, QObject* parent)
+    : QObject(parent)
 {
+    m_timer.setInterval(TIMEOUT);
     m_timer.setSingleShot(true);
     connect(&m_timer, &QTimer::timeout, this, &CProtocolTransmitter::requestTimeout);
     setDevice(dev);
 }
-CProtocolTransmitter::CProtocolTransmitter(QObject *parent) : QObject(parent)
+CProtocolTransmitter::CProtocolTransmitter(QObject* parent)
+    : QObject(parent)
 {
+    m_timer.setInterval(TIMEOUT);
     m_timer.setSingleShot(true);
     connect(&m_timer, &QTimer::timeout, this, &CProtocolTransmitter::requestTimeout);
 }
 
-void CProtocolTransmitter::setDevice(QIODevice *dev)
+void CProtocolTransmitter::setDevice(QIODevice* dev)
 {
     m_device = dev;
     connect(m_device, &QIODevice::readyRead, this, &CProtocolTransmitter::readyRead);
@@ -56,41 +61,44 @@ void CProtocolTransmitter::getRequest(ESectionType type)
 {
     switch (type) {
     case eSerial:
-        requests.enqueue(SSerialSection());
+        pushQueu(SSerialSection());
         break;
     case eCommon:
-        requests.enqueue(SCommonSection());
+        pushQueu(SCommonSection());
         break;
     case eStat:
-        requests.enqueue(SStatSection());
+        pushQueu(SStatSection());
         break;
     default:
         return;
     }
 }
 
-void CProtocolTransmitter::setRequest(const SSection &section)
+void CProtocolTransmitter::setRequest(const SSection& section)
 {
     auto type = section.getType();
     /// запросы на изменение можно посылать только для eSeria и eCommon
     if (!(type == eSerial || type == eCommon))
         return;
 
-    requests.enqueue(section);
+    pushQueu(section);
 }
 
 void CProtocolTransmitter::serviceRequest(EServiceCommand cmd)
 {
     SDebugSection temp;
     temp.fields[SERVICE_COMMAND[cmd]] = SERVICE_COMMAND[cmd];
-    requests.enqueue(temp);
+    pushQueu(temp);
 }
 
 void CProtocolTransmitter::readyRead()
 {
+    // if (reqProcessing) {
     /// результат обработки последнего запроса
     bool res = true;
-    ESectionType lastReq = requests.head().getType();
+    auto lastReq = SSection();
+    if (reqProcessing)
+        lastReq = requests.head();
 
     /// отделяем всю служебную информацию (все, что не в секции) и узнаем тип следующей
     /// секции пока есть, что читать
@@ -109,6 +117,7 @@ void CProtocolTransmitter::readyRead()
             break;
         case eSerial:
             sect = SSerialSection();
+            break;
         case eDebug:
             sect = SDebugSection();
             break;
@@ -117,31 +126,35 @@ void CProtocolTransmitter::readyRead()
             break;
         }
         fillSection(rawSection, sect);
+        /// тип ответа не совпадает с типом запроса, просто выходим
+        if (type != lastReq.getType())
+            return;
 
         /// разделяем подтверждения и ответы на запросы
-
         if (SSection::isConfirmation(sect)) {
-            res = processConfirmation(sect);
+            res = processConfirmation(lastReq, sect);
         } else {
             emit s_sectionRead(sect);
             /// на serial-запрос должно приходить несколько секций, поэтому serial-запрос
             /// завершается по тайм-ауту
-            if (lastReq == eSerial) {
+            if (lastReq.getType() == eSerial) {
                 res = false;
             } else {
-                requests.dequeue();
-                m_timer.stop();
                 res = true;
             }
+        } /// запрос выполнен, сворачиваемся
+        if (res) {
+            popQueu();
+            break;
         }
     }
-    if (res)
-        processNextRequest();
+    //}
 }
 
 void CProtocolTransmitter::requestTimeout()
 {
-    auto request = requests.dequeue();
+    s_debugInfo("  Last request time-out");
+    auto request = popQueu();
     if (request.getType() == eDebug) {
         for (auto it = request.fields.begin(); it != request.fields.end(); it++) {
             if (!it.value().isEmpty())
@@ -159,6 +172,7 @@ ESectionType CProtocolTransmitter::separateNoSection()
     while (m_device->size() > 0) {
         /// смотрим, что лежит в буфере (отладочное инфо или секция)
         QByteArray data = m_device->peek(m_device->size());
+        s_debugInfo("Buffer: " + data);
 
         int posInterruptor = data.indexOf(SECTION_INTERRUPTOR);
         ESectionType typeHeader;
@@ -202,13 +216,13 @@ QByteArray CProtocolTransmitter::readRawSection(QString sectionName)
         return QByteArray();
 
     /// читаем данные, стираем все лишнее
-    QByteArray sectData = m_device->read(posEnd + SECTION_INTERRUPTOR.size());
+    QByteArray sectData = m_device->read(posEnd + SECTION_INTERRUPTOR.size() + LINE_BREAKER.size());
     if (posBegin != 0)
         sectData.remove(0, posBegin);
     return sectData;
 }
 
-void CProtocolTransmitter::fillSection(const QByteArray &rawSection, SSection &sect)
+void CProtocolTransmitter::fillSection(const QByteArray& rawSection, SSection& sect)
 {
     /// статистика не разделется на строки и идет целым куском
     if (sect.getType() == eStat) {
@@ -224,8 +238,9 @@ void CProtocolTransmitter::fillSection(const QByteArray &rawSection, SSection &s
                 auto fieldName = it.key();
                 if (string.contains(fieldName.toStdString().c_str())) {
                     int pos = string.indexOf(fieldName);
-                    // удаляем имя секции, двоеточие и пробел
+                    // удаляем имя секции, двоеточие и пробел, '\r'
                     string.remove(0, pos + fieldName.size() + 2);
+                    string.replace('\r', "");
                     it.value() = string;
                 }
             }
@@ -235,17 +250,17 @@ void CProtocolTransmitter::fillSection(const QByteArray &rawSection, SSection &s
     dbg << sect;
 }
 
-bool CProtocolTransmitter::processConfirmation(const SSection &sect)
+bool CProtocolTransmitter::processConfirmation(const SSection& request, const SSection& answer)
 {
     QDebug dbg = qDebug();
-    auto request = requests.head();
-    if (request.getType() != sect.getType())
+    if (request.getType() != answer.getType())
         return false;
+
     if (request.getType() == eDebug) {
-        return processServiceConfirmation(sect);
+        return processServiceConfirmation(request, answer);
     }
 
-    auto listErrors = SSection::getErrorFields(sect);
+    auto listErrors = SSection::getErrorFields(answer);
     if (listErrors.size() < 1) {
         emit s_requestConfirmed(request);
         dbg << "Last request confirmed" << request;
@@ -256,71 +271,88 @@ bool CProtocolTransmitter::processConfirmation(const SSection &sect)
             dbg << err << endl;
         }
     }
-    /// запрос получил подтверждение, удаляем его из списка ожидания
-    requests.dequeue();
-    m_timer.stop();
+
     return true;
 }
 
-bool CProtocolTransmitter::processServiceConfirmation(const SSection &sect)
+bool CProtocolTransmitter::processServiceConfirmation(const SSection& request, const SSection& answer)
 {
-    auto request = requests.head();
     /// если предыдущий запрос был service
-    if (request.getType() == eDebug && sect.getType() == eDebug) {
+    if (request.getType() == eDebug && answer.getType() == eDebug) {
         /// ищем подтверждение
-        for (auto it = sect.fields.begin(); it != sect.fields.end(); it++) {
+        for (auto it = answer.fields.begin(); it != answer.fields.end(); it++) {
             if (!it.value().isEmpty()) {
-                if (it.key() == SECTIONVAL_CONFIRMED) {
-                    emit s_serviceRequestConfirmed(it.value());
-                    qDebug() << "Last service-request confirmed: " << it.value();
+                if (it.value() == SECTIONVAL_CONFIRMED) {
+                    emit s_serviceRequestConfirmed(it.key());
+                    qDebug() << "Last service-request confirmed: " << it.key();
 
                 } else {
-                    emit s_serviceRequestFailed(it.value());
-                    qDebug() << "Last service-request failed: " << it.value();
+                    emit s_serviceRequestFailed(it.key());
+                    qDebug() << "Last service-request failed: " << it.key();
                 }
             }
         }
-        /// запрос обработан, удаляем его из списка ожидания
-        requests.dequeue();
-        m_timer.stop();
         return true;
     }
     return false;
 }
 
-void CProtocolTransmitter::processNextRequest()
+bool CProtocolTransmitter::processNextRequest()
 {
-    if (requests.size() > 0) {
-        QString str;
-        SSection req = requests.head();
-        auto type = req.getType();
-        /// секция пустая => get-запрос
-        if (SSection::isEmpty(req)) {
-            str = "get(" + getStr(type) + ")\n";
-            str.remove('[');
-            str.remove(']');
+    QString str;
+    SSection req = requests.head();
+    auto type = req.getType();
+    /// секция пустая => get-запрос
+    if (SSection::isEmpty(req)) {
+        str = "get(" + getStr(type) + ")\n";
+        str.remove('[');
+        str.remove(']');
 
-        }
-        /// секция заполнена => service- или set-зпрос
-        else {
-
-            str += getStr(type);
-            str += "\n";
-            for (auto it = req.fields.begin(); it != req.fields.end(); it++) {
-                if (!it.value().isEmpty()) {
-                    /// service - запрос
-                    if (type == eDebug)
-                        str = it.key() + "\n";
-                    /// set - запрос
-                    else
-                        str = str + it.key() + ": " + it.value() + "\n";
-                }
-            }
-        }
-        /// отправляем запрос
-        if (m_device) {
-            m_device->write(str.toStdString().c_str());
-            m_timer.start();
+    }
+    /// секция заполнена => service- или set-зпрос
+    else if (req.getType() == eDebug) {
+        for (auto it = req.fields.begin(); it != req.fields.end(); it++) {
+            if (!it.value().isEmpty())
+                str = it.key() + "\n";
         }
     }
+    /// set - запрос
+    else {
+        str += getStr(type);
+        str += "\n";
+        for (auto it = req.fields.begin(); it != req.fields.end(); it++) {
+            if (!it.value().isEmpty())
+                str = str + it.key() + ": " + it.value() + "\n";
+        }
+        str = str + SECTION_INTERRUPTOR + "\n";
+    }
+    /// отправляем запрос
+    if (m_device) {
+        qDebug() << "Request sent: " << str;
+        m_device->write(str.toStdString().c_str());
+        s_debugInfo("Request sent: " + str);
+        m_timer.start();
+        return true;
+    } else
+        return false;
+}
+
+void CProtocolTransmitter::pushQueu(const SSection& sect)
+{
+    requests.enqueue(sect);
+    if (!reqProcessing) {
+        reqProcessing = processNextRequest();
+    }
+}
+
+SSection CProtocolTransmitter::popQueu()
+{
+    m_timer.stop();
+    auto req = requests.dequeue();
+    s_debugInfo("Last request closed: " + getStr(req.getType()));
+    if (requests.size() > 0)
+        reqProcessing = processNextRequest();
+    else
+        reqProcessing = false;
+    return req;
 }

@@ -50,16 +50,21 @@ protected:
     void fillSection(const QByteArray &rawSection, SSection &sect);
     /// обрабатывает все подтверждения (подтверждено, не подтверждено), возвращает true, если
     /// подтверждение соответствует запросу
-    bool processConfirmation(const SSection &sect);
+    bool processConfirmation(const SSection &request, const SSection &answer);
     /// обрабатывает service-подтверждения (подтверждено, не подтверждено)
-    bool processServiceConfirmation(const SSection &sect);
-    ///обрабатывает следующий в очереди запрос
-    void processNextRequest();
+    bool processServiceConfirmation(const SSection &request, const SSection &answer);
+    ///отправляет следующий в очереди запрос, если устройство доступно
+    bool processNextRequest();
+    ///ставит запрос в очередь
+    void pushQueu(const SSection& sect);
+    ///удаляет первый вопрос из очереди
+    SSection popQueu();
 
 private:
     QIODevice *m_device { nullptr };
     /// тут храним последний запрос
     QQueue<SSection> requests;
+    bool reqProcessing { false };
     /// таймер для получения ответа от устройства
     QTimer m_timer;
 };

@@ -19,6 +19,8 @@ class CMainWindow : public QMainWindow
     Q_OBJECT
     enum EPage { eStartPage, eMainPage };
     enum ESettingsMode { eHidden, eViewMode, eEditMode, eWaitMode };
+    Q_PROPERTY(EPage page READ getPage WRITE setPage)
+    Q_PROPERTY(ESettingsMode mode READ getMode WRITE setMode)
 
 public:
     CMainWindow(QWidget *parent = nullptr);
@@ -29,6 +31,8 @@ protected:
     void setPage(EPage page);
     ///! устанавливает вид настроек (только для eMainPage)
     void setMode(ESettingsMode mode);
+    EPage getPage() { return  page; }
+    ESettingsMode getMode() { return mode; }
     ///! обновляет комбо-бокс с доступными портами (только для eStartPage)
     void updateAvaliablePorts();
     ///! заполняет поля настроек для заданного интерфейса (берет их из  m_setts)
@@ -93,15 +97,16 @@ private slots:
     ///! отладочный запрос выполнен
     void serviceRequestConfirmed(QString name);
 
+    void on_pb_startUpdate_clicked();
+
 private:
 private:
     Ui::CMainWindow *ui;
-    //!*** Fields for GUI
-    ESettingsMode m_mode { eHidden };
-    EPage m_page { eStartPage };
 
+    EPage page { eStartPage };
+    ESettingsMode mode { eHidden };
     ///секции с текущими настройкамми
-    QList<SSection> m_sects;
+    QVector<SSection> m_sects;
 
     //!*** Fields for external connections
     CSerialPort m_serial;

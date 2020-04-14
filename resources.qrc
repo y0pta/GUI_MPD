@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
-        <file>close-window.png</file>
         <file>cb_stylesheet</file>
+        <file>close-window.png</file>
+        <file>refresh.png</file>
     </qresource>
 </RCC>

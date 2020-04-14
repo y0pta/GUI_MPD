@@ -68,21 +68,11 @@ QMenu {
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">QGroupBox {
-    border-radius:  6 6 px;
-	selection-color: rgb(255, 170, 0);
-	border:  2px solid rgb(100,100,100) ;
-}   
-
-QGroupBox::title {
-    subcontrol-origin: margin;
-    padding: 3 6px;
-/*border: 2px solid #00665E*/
-}
-QLabel{
+     <string notr="true">QLabel{
 color: rgb(186, 186, 186);
 }
-color:  rgb(186, 186, 186);
+
+color: white;
 
 background-color:   rgb(70, 70, 70);
 
@@ -144,6 +134,12 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
      <layout class="QFormLayout" name="fl_unitSettings">
       <item row="0" column="0">
        <widget class="QLabel" name="lb_baudRate">
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">color: white;</string>
+        </property>
         <property name="text">
          <string>Скорость</string>
         </property>
@@ -170,6 +166,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="lb_dataBits">
+        <property name="styleSheet">
+         <string notr="true">color: white;</string>
+        </property>
         <property name="text">
          <string>Биты данных</string>
         </property>
@@ -201,6 +200,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="lb_parity">
+        <property name="styleSheet">
+         <string notr="true">color: white;</string>
+        </property>
         <property name="text">
          <string>Контроль четности</string>
         </property>
@@ -227,6 +229,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="lb_stopBits">
+        <property name="styleSheet">
+         <string notr="true">color: white;</string>
+        </property>
         <property name="text">
          <string>Стоповые биты</string>
         </property>
@@ -236,17 +241,17 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
        <widget class="QComboBox" name="cb_stopBits">
         <item>
          <property name="text">
-          <string>1 bit</string>
+          <string>1</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>1.5 bit</string>
+          <string>1.5</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>2 bit</string>
+          <string>2</string>
          </property>
         </item>
        </widget>
@@ -264,6 +269,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="5" column="0">
        <widget class="QLabel" name="lb_waitPacketTime">
+        <property name="styleSheet">
+         <string notr="true">color: white;</string>
+        </property>
         <property name="text">
          <string>Время ожидания данных</string>
         </property>
@@ -282,6 +290,9 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="lb_writeDelay">
+        <property name="styleSheet">
+         <string notr="true">color: white;</string>
+        </property>
         <property name="text">
          <string>Задержка между пакетами</string>
         </property>
@@ -374,7 +385,7 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
    <widget class="QLabel" name="lb_status">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>280</x>
       <y>600</y>
       <width>291</width>
       <height>25</height>
@@ -405,73 +416,6 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     <property name="autoRepeatInterval">
      <number>98</number>
     </property>
-   </widget>
-   <widget class="QGroupBox" name="gb_start">
-    <property name="geometry">
-     <rect>
-      <x>179</x>
-      <y>89</y>
-      <width>221</width>
-      <height>171</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Выбор порта</string>
-    </property>
-    <widget class="QWidget" name="verticalLayoutWidget">
-     <property name="geometry">
-      <rect>
-       <x>30</x>
-       <y>20</y>
-       <width>151</width>
-       <height>111</height>
-      </rect>
-     </property>
-     <layout class="QVBoxLayout" name="vl_start">
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QComboBox" name="cb_avaliablePorts"/>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>10</width>
-          <height>5</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pb_startConfigure">
-        <property name="text">
-         <string>Подсоединить</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
    </widget>
    <widget class="QGroupBox" name="gb_mpdModel">
     <property name="geometry">
@@ -504,10 +448,10 @@ QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     <widget class="CMpdWidget" name="wgt_model" native="true">
      <property name="geometry">
       <rect>
-       <x>50</x>
+       <x>70</x>
        <y>30</y>
-       <width>341</width>
-       <height>171</height>
+       <width>311</width>
+       <height>161</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -573,7 +517,7 @@ QTabBar::tab:selected {
 }</string>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab">
      <attribute name="title">
@@ -744,6 +688,88 @@ QTabBar::tab:selected {
      </widget>
     </widget>
    </widget>
+   <widget class="QGroupBox" name="gb_start">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>160</y>
+      <width>391</width>
+      <height>191</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Выбор порта</string>
+    </property>
+    <widget class="QWidget" name="verticalLayoutWidget">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>30</y>
+       <width>161</width>
+       <height>131</height>
+      </rect>
+     </property>
+     <layout class="QVBoxLayout" name="vl_start">
+      <item>
+       <widget class="QComboBox" name="cb_avaliablePorts">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="baseSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pb_startConfigure">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Подсоединить</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QPushButton" name="pb_startUpdate">
+     <property name="geometry">
+      <rect>
+       <x>90</x>
+       <y>50</y>
+       <width>31</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset resource="resources.qrc">
+       <normaloff>:/refresh.png</normaloff>:/refresh.png</iconset>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+     <property name="autoRepeatInterval">
+      <number>99</number>
+     </property>
+    </widget>
+    <zorder>pb_startUpdate</zorder>
+    <zorder>verticalLayoutWidget</zorder>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -751,7 +777,7 @@ QTabBar::tab:selected {
      <x>0</x>
      <y>0</y>
      <width>806</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
   </widget>

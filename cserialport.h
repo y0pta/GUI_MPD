@@ -11,7 +11,6 @@
 class CSerialPort : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QList<QString> avaliablePorts MEMBER m_avaliablePorts NOTIFY s_avaliablePortsChanged)
 public:
     CSerialPort(QObject *parent = nullptr);
     ~CSerialPort() {}
@@ -22,7 +21,6 @@ public:
 signals:
     void s_error(QString);
     void s_deviceRemoved();
-    void s_avaliablePortsChanged();
 
 public:
     // opens port with default settings (115200 8n1)
@@ -47,8 +45,6 @@ private slots:
 
 private:
     QSerialPort m_port;
-    QTimer m_timeToCheckPorts;
-    QList<QString> m_avaliablePorts;
 };
 
 #endif // CSERIALPORT_H
