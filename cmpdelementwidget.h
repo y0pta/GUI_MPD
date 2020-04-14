@@ -1,19 +1,22 @@
 #ifndef CMPDELEMENT_H
 #define CMPDELEMENT_H
 
-#include <QPushButton>
 #include <QMenu>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <ssettings.h>
 
 // Класс элемента модели МПД (немного измененная кнопка)
 
-class CMpdElementWidget : public QPushButton
-{
+class CMpdElementWidget : public QPushButton {
     Q_OBJECT
 public:
-    CMpdElementWidget(QWidget *pwgt = 0) : QPushButton(pwgt) { _resetView(); }
-    CMpdElementWidget(QString text, QWidget *pwgt = 0);
+    CMpdElementWidget(QWidget* pwgt = 0)
+        : QPushButton(pwgt)
+    {
+        _resetView();
+    }
+    CMpdElementWidget(QString text, QWidget* pwgt = 0);
 
     void setEnabled(bool);
     // смена состояния и внешнего вида виджета
@@ -24,7 +27,7 @@ public:
     void setFreeze(bool st);
 
 public slots:
-    void menuAction(QAction *act);
+    void menuAction(QAction* act);
 
 signals:
     void s_clicked();
@@ -32,14 +35,14 @@ signals:
     void s_menuVisible();
 
 protected:
-    virtual void mousePressEvent(QMouseEvent *e) override;
-    virtual void enterEvent(QEvent *event) override;
-    virtual void leaveEvent(QEvent *event) override;
+    virtual void mousePressEvent(QMouseEvent* e) override;
+    virtual void enterEvent(QEvent* event) override;
+    virtual void leaveEvent(QEvent* event) override;
 
 private:
     // возвращает виджет в исходное состояние
     void _resetView(QString text = QString());
-    // устанавливает вид в зависимости state
+    // обновляет вид взависимости от state
     void _setView();
 private slots:
     void _menuClosed();

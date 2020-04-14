@@ -33,9 +33,9 @@ CMainWindow::CMainWindow(QWidget* parent)
     auto sett = SSerialSection::getSerialDefault(SERIAL_IFACE_RADIO);
     //    sett.fields[SERIAL_BAUDRATE] = "9600";
     //    sett.fields[SERIAL_PARITY] = "odd";
-    addSetting(sett);
-    addSetting(SSerialSection::getSerialDefault(SERIAL_IFACE_RS232));
-    addSetting(SSerialSection::getSerialDefault(SERIAL_IFACE_RS485));
+    setSection(sett);
+    setSection(SSerialSection::getSerialDefault(SERIAL_IFACE_RS232));
+    setSection(SSerialSection::getSerialDefault(SERIAL_IFACE_RS485));
 
     //    SCommonSection cs;
     //    cs.fields[COMMON_MODE] = COMMON_MODE_VAL[eSms];
@@ -70,7 +70,7 @@ void CMainWindow::setPage(EPage p)
         ui->pb_finishConfigure->setVisible(true);
         ui->left_tab->setVisible(true);
         ui->lb_mode->setVisible(true);
-        showSettings("RS-232");
+        ui->lb_status->setAlignment(Qt::AlignLeft);
     }
     if (p == eStartPage) {
         ui->gb_start->setVisible(true);
@@ -78,6 +78,16 @@ void CMainWindow::setPage(EPage p)
         ui->gb_mpdModel->setVisible(false);
         ui->pb_finishConfigure->setVisible(false);
         ui->lb_mode->setVisible(false);
+        ui->lb_status->setAlignment(Qt::AlignCenter);
+    }
+    if (p == eLoading) {
+        ui->lb_status->setText("Загрузка...");
+        ui->gb_start->setVisible(false);
+        ui->left_tab->setVisible(false);
+        ui->gb_mpdModel->setVisible(false);
+        ui->pb_finishConfigure->setVisible(false);
+        ui->lb_mode->setVisible(false);
+        ui->lb_status->setAlignment(Qt::AlignLeft);
     }
 }
 
@@ -89,36 +99,25 @@ void CMainWindow::setMode(ESettingsMode m)
             ui->pb_edit->setVisible(true);
             ui->pb_accept->setVisible(false);
             ui->pb_cancel->setVisible(false);
+            ui->wgt_model->setFreeze(false);
 
             ui->gb_settings->setVisible(true);
             ui->pb_closeSettings->setEnabled(true);
 
             enableSettings(false);
-            //setCursor(Qt::ArrowCursor);
         } else if (m == eEditMode) {
             ui->pb_edit->setVisible(false);
             ui->pb_accept->setVisible(true);
             ui->pb_cancel->setVisible(true);
+            ui->wgt_model->setFreeze(true);
 
             ui->gb_settings->setVisible(true);
             ui->pb_closeSettings->setEnabled(true);
 
             enableSettings(true);
-            // setCursor(Qt::ArrowCursor);
-
-        } else if (m == eWaitMode) {
-            ui->pb_edit->setVisible(false);
-            ui->pb_accept->setVisible(false);
-            ui->pb_cancel->setVisible(false);
-
-            ui->gb_settings->setVisible(true);
-            ui->pb_closeSettings->setEnabled(false);
-
-            enableSettings(false);
-            // setCursor(Qt::WaitCursor);
         } else if (m == eHidden) {
+            ui->wgt_model->setFreeze(false);
             ui->gb_settings->setVisible(false);
-            // setCursor(Qt::ArrowCursor);
         }
     }
 }
@@ -154,17 +153,17 @@ void CMainWindow::on_pb_startConfigure_clicked()
         connect(&m_serial, &CSerialPort::s_error, this, &CMainWindow::setError);
         prepareProtocol();
         m_serial.setProtocol(m_protocol);
-        m_protocol->getRequest(eSerial);
+
         m_protocol->getRequest(eCommon);
         m_protocol->getRequest(eStat);
+        m_protocol->getRequest(eSerial);
 
-        setPage(eMainPage);
+        setPage(eLoading);
     }
 }
 
 void CMainWindow::on_pb_closeSettings_clicked()
 {
-    ui->wgt_model->unfreezeAll();
     setMode(eHidden);
 }
 
@@ -187,7 +186,6 @@ void CMainWindow::enableSettings(bool st)
 
 void CMainWindow::on_pb_edit_clicked()
 {
-    ui->wgt_model->freezeExcept(ui->lb_ifaceName->text());
     setMode(eEditMode);
 }
 
@@ -204,47 +202,6 @@ void CMainWindow::wantChangeStateReceived(QString ifaceName, EState st)
 
             m_protocol->setRequest(sett);
         }
-    }
-}
-
-void CMainWindow::addSetting(const SSection& sett)
-{
-    int i = 0;
-    for (; i < m_sects.size(); i++) {
-        if (m_sects[i].fields.contains(SERIAL_IFACE))
-            if (m_sects[i].fields[SERIAL_IFACE] == sett.fields[SERIAL_IFACE]) {
-                m_sects[i] = sett;
-                break;
-            }
-    }
-    if (i == m_sects.size())
-        m_sects.push_back(sett);
-
-    processSetting(sett);
-}
-
-void CMainWindow::processSetting(const SSection& sect)
-{
-    switch (sect.getType()) {
-    case eSerial:
-        colorFields({});
-        fillSerialFieds(sect);
-        break;
-    case eCommon:
-        ui->lb_mode->setText(sect.fields[COMMON_MODE]);
-        if (sect.fields[COMMON_MODE] == COMMON_MODE_VAL[eSms])
-            ui->rb_sms->setChecked(true);
-        else
-            ui->rb_clarity->setChecked(true);
-        if (sect.fields[COMMON_DUMPSTATUS] == STATUS_ON)
-            ui->cb_dumpOn->setChecked(true);
-        else
-            ui->cb_dumpOn->setChecked(false);
-        break;
-    case eStat:
-        ui->txt_statistics->append(sect.fields[STAT_TEXT]);
-    default:
-        break;
     }
 }
 
@@ -283,6 +240,21 @@ void CMainWindow::fillSerialFieds(const SSection& sect)
         ui->ln_waitPacketTime->setText(sect.fields[SERIAL_WAITPACKETTIME]);
 }
 
+void CMainWindow::setIfaceState(const QString& nameEl, const QString& state)
+{
+    EState status = eError;
+    if (state == STATUS_ON)
+        status = eConnected;
+    if (state == STATUS_OFF)
+        status = eDisconnected;
+    ui->wgt_model->changeState(nameEl, status);
+}
+
+void CMainWindow::setIfaceState(const QString& nameEl, EState state)
+{
+    ui->wgt_model->changeState(nameEl, state);
+}
+
 void CMainWindow::colorFields(const QList<QString>& errorNames)
 {
     /// Идем по всем полям формы с настройками, подсвечиваем те, которые ошибочные. Обесцвечиваем не
@@ -299,10 +271,75 @@ void CMainWindow::colorFields(const QList<QString>& errorNames)
     }
 }
 
+void CMainWindow::processSerial(const SSection& sect, const QList<QString>& errorNames)
+{
+    //если уже существует уже такая настройка, находим
+    int i = 0;
+    for (; i < m_sects.size(); i++) {
+        if (m_sects.at(i).fields[SERIAL_IFACE] == sect.fields[SERIAL_IFACE]) {
+            m_sects[i] = sect;
+            break;
+        }
+    }
+    if (i == m_sects.size())
+        m_sects.append(sect);
+
+    colorFields(errorNames);
+    fillSerialFieds(sect);
+
+    setIfaceState(sect.fields[SERIAL_IFACE], sect.fields[SERIAL_STATUS]);
+}
+
+void CMainWindow::processCommon(const SSection& sect)
+{
+    ui->lb_mode->setText(sect.fields[COMMON_MODE]);
+
+    //если уже существует уже такая настройка, находим
+    auto i = 0;
+    for (; i < m_sects.size(); i++)
+        if (m_sects.at(i).getType() == eCommon)
+            break;
+    //если нет, добавляем новую
+    if (i == m_sects.size()) {
+        m_sects.push_back(SCommonSection());
+    }
+
+    //добавили или обновили поля
+    if (!sect.fields[COMMON_MODE].isEmpty())
+        m_sects[i].fields[COMMON_MODE] = sect.fields[COMMON_MODE];
+    if (!sect.fields[COMMON_DUMPSTATUS].isEmpty())
+        m_sects[i].fields[COMMON_DUMPSTATUS] = sect.fields[COMMON_DUMPSTATUS];
+
+    // обновляем вид
+    /// для режима
+    ui->lb_mode->setText(m_sects[i].fields[COMMON_MODE]);
+    if (m_sects[i].fields[COMMON_MODE] == COMMON_MODE_VAL[eSms])
+        ui->rb_sms->setChecked(true);
+    if (m_sects[i].fields[COMMON_MODE] == COMMON_MODE_VAL[eClarity])
+        ui->rb_clarity->setChecked(true);
+    /// для дампа
+    if (m_sects[i].fields[COMMON_DUMPSTATUS] == STATUS_ON)
+        ui->cb_dumpOn->setChecked(true);
+    if (m_sects[i].fields[COMMON_DUMPSTATUS] == STATUS_OFF)
+        ui->cb_dumpOn->setChecked(false);
+}
+
 void CMainWindow::setSection(const SSection& sect)
 {
-    addSetting(sect);
-    //   ui->txt_debug->append("   Section received: "+getStr(sect.getType()));
+    if (page == eLoading)
+        setPage(eMainPage);
+    switch (sect.getType()) {
+    case eStat:
+        ui->txt_statistics->append(sect.fields[STAT_TEXT]);
+        break;
+    case eSerial:
+        processSerial(sect);
+        break;
+    case eCommon:
+        processCommon(sect);
+    default:
+        break;
+    }
 }
 
 void CMainWindow::setDebugInfo(const QString& str)
@@ -312,21 +349,18 @@ void CMainWindow::setDebugInfo(const QString& str)
 
 void CMainWindow::requestConfirmed(const SSection& sect)
 {
-    addSetting(sect);
-    setMode(eViewMode);
-    if (sect.getType() == eSerial)
-        ui->wgt_model->changeState(sect.fields[SERIAL_IFACE],
-            STATE_TYPES.key(sect.fields[SERIAL_STATUS]));
+    setSection(sect);
     ui->txt_debug->append("   Request approved: " + getStr(sect.getType()));
 }
 
 void CMainWindow::requestFailed(const SSection& sect)
 {
+    if (page == eLoading)
+        setPage(eStartPage);
     if (sect.getType() == eStat) {
         ui->txt_statistics->append("Время ожидания подтверждения превышено");
     } else
         ui->lb_status->setText("Время ожидания подтверждения превышено");
-    setMode(eViewMode);
 }
 
 void CMainWindow::serviceRequestFailed(QString name)
@@ -341,12 +375,11 @@ void CMainWindow::serviceRequestConfirmed(QString name)
     ui->lb_status->setText("Запрос " + name + " выполнен");
 }
 
-void CMainWindow::requestError(const QList<QString>& errorFields)
+void CMainWindow::requestError(const SSection& answer)
 {
     ui->txt_debug->append("   Request failed: ");
-    for (auto err : errorFields)
-        ui->txt_debug->append("     " + err);
-    colorFields(errorFields);
+    colorFields(SSection::getErrorFields(answer));
+    setIfaceState(answer.fields[SERIAL_IFACE], eError);
 }
 
 void CMainWindow::on_pb_finishConfigure_clicked()
@@ -368,7 +401,6 @@ void CMainWindow::on_pb_finishConfigure_clicked()
 
 void CMainWindow::on_pb_cancel_clicked()
 {
-    ui->wgt_model->unfreezeAll();
     setMode(eHidden);
 }
 
@@ -435,11 +467,12 @@ void CMainWindow::on_pb_accept_clicked()
     if (!m_protocol || !m_serial.isOpen())
         return;
 
-    setMode(eWaitMode);
-    ui->wgt_model->unfreezeAll();
+    setMode(eViewMode);
+
     SSerialSection sett;
     QString iface = ui->lb_ifaceName->text();
     sett.fields[SERIAL_IFACE] = iface;
+    sett.fields[SERIAL_STATUS] = STATUS_ON;
     sett.fields[SERIAL_PARITY] = ui->cb_parity->currentText();
     sett.fields[SERIAL_BAUDRATE] = ui->cb_baudRate->currentText();
     sett.fields[SERIAL_DATABITS] = ui->cb_dataBits->currentText();

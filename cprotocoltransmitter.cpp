@@ -250,7 +250,7 @@ void CProtocolTransmitter::fillSection(const QByteArray& rawSection, SSection& s
     dbg << sect;
 }
 
-bool CProtocolTransmitter::processConfirmation(const SSection& request, const SSection& answer)
+bool CProtocolTransmitter::processConfirmation(const SSection& request, SSection& answer)
 {
     QDebug dbg = qDebug();
     if (request.getType() != answer.getType())
@@ -259,13 +259,15 @@ bool CProtocolTransmitter::processConfirmation(const SSection& request, const SS
     if (request.getType() == eDebug) {
         return processServiceConfirmation(request, answer);
     }
+    if (request.getType() == eSerial)
+        answer.fields[SERIAL_IFACE] = request.fields[SERIAL_IFACE];
 
     auto listErrors = SSection::getErrorFields(answer);
     if (listErrors.size() < 1) {
         emit s_requestConfirmed(request);
         dbg << "Last request confirmed" << request;
     } else {
-        emit s_requestError(listErrors);
+        emit s_requestError(answer);
         dbg << "Error list: " << endl;
         foreach (auto err, listErrors) {
             dbg << err << endl;

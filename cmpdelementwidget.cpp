@@ -1,24 +1,27 @@
 #include "cmpdelementwidget.h"
 const QString COLOR_ERROR = "#A40835";
 const QString COLOR_CONNECTED = "#5BC30B";
-const QString COLOR_DISCONNECTED = "#313737";
-const QString COLOR_FREEZED_ERROR = "#A03C45";
-const QString COLOR_FREEZED_CONNECTED = "#3CA03C";
-const QString COLOR_FREEZED_DISCONNECTED = "#515757";
-const QString COLOR_FREEZED_DISABLED = "#8C8C8C";
-const QString COLOR_DISABLED = "#515757";
+const QString COLOR_DISCONNECTED = "#383838";
+const QString COLOR_DISABLED = "#494949";
+const QString COLOR_FREEZED_ERROR = "#AF7D7D";
+const QString COLOR_FREEZED_CONNECTED = "#97D197";
+const QString COLOR_FREEZED_DISCONNECTED = "#6B6B6B";
+const QString COLOR_FREEZED_DISABLED = "#999999";
+
 const QString COLOR_BORDER_ACTIVE = "#5DCEC6";
 const QString COLOR_BORDER_DISACTIVE = "#00665E";
 
 const QString CONNECT = "Подсоединить";
 const QString DISCONNECT = "Отсоединить";
 
-CMpdElementWidget::CMpdElementWidget(QString text, QWidget *pwgt) : QPushButton(pwgt)
+CMpdElementWidget::CMpdElementWidget(QString text, QWidget* pwgt)
+    : QPushButton(pwgt)
 {
     connect(&m_menu, &QMenu::triggered, this, &CMpdElementWidget::menuAction);
     connect(&m_menu, &QMenu::aboutToHide, this, &CMpdElementWidget::_menuClosed);
     m_menu.addAction(CONNECT);
     m_menu.addAction(DISCONNECT);
+    setStyleSheet("QMenu { background-color: gray; }\n");
 
     _resetView(text);
 }
@@ -35,7 +38,7 @@ void CMpdElementWidget::_setView()
     QString style_str;
 
     style_str = "QPushButton { color: white; background-color: ";
-    if (!freezed || active)
+    if (!freezed || (active && freezed))
         switch (m_state) {
         case EState::eConnected:
             style_str += COLOR_CONNECTED;
@@ -67,7 +70,7 @@ void CMpdElementWidget::_setView()
         }
 
     //Меняем выделение границы
-    if (active && enabled) {
+    if ((active && enabled) || (active && freezed)) {
         style_str += "; border: 6px solid #5DCEC6; }";
     } else {
         style_str += "; border: 2px solid #00665E; }";
@@ -84,12 +87,12 @@ void CMpdElementWidget::_menuClosed()
         setActive(false);
 }
 
-void CMpdElementWidget::menuAction(QAction *act)
+void CMpdElementWidget::menuAction(QAction* act)
 {
-    if (m_state == EState::eConnected && act->text() == DISCONNECT) {
+    if (m_state != EState::eDisconnected && act->text() == DISCONNECT) {
         emit s_wantChangeState(EState::eDisconnected);
     }
-    if (m_state == EState::eDisconnected && act->text() == CONNECT) {
+    if (m_state != EState::eConnected && act->text() == CONNECT) {
         setActive(true);
         emit s_wantChangeState(EState::eConnected);
     }
@@ -97,35 +100,31 @@ void CMpdElementWidget::menuAction(QAction *act)
 
 void CMpdElementWidget::setState(EState st)
 {
-    if (!freezed) {
-        m_state = st;
-        _setView();
-    }
+    m_state = st;
+    _setView();
 }
 
 void CMpdElementWidget::setActive(bool st)
 {
-    if (!freezed) {
-        active = st;
-        _setView();
-    }
+    active = st;
+    _setView();
 }
 
 void CMpdElementWidget::setFreeze(bool st)
 {
+    if (freezed == true)
+        active = false;
     freezed = st;
     _setView();
 }
 
 void CMpdElementWidget::setEnabled(bool en)
 {
-    if (!freezed) {
-        enabled = en;
-        setState(m_state);
-    }
+    enabled = en;
+    setState(m_state);
 }
 
-void CMpdElementWidget::mousePressEvent(QMouseEvent *e)
+void CMpdElementWidget::mousePressEvent(QMouseEvent* e)
 {
     if (enabled && !freezed) {
         // если нажали правую клавишу, показываем меню
@@ -139,20 +138,18 @@ void CMpdElementWidget::mousePressEvent(QMouseEvent *e)
     }
 }
 
-void CMpdElementWidget::enterEvent(QEvent *event)
+void CMpdElementWidget::enterEvent(QEvent* event)
 {
     Q_UNUSED(event)
     if (enabled && !freezed) {
-        active = true;
-        _setView();
+        setActive(true);
     }
 }
-void CMpdElementWidget::leaveEvent(QEvent *event)
+void CMpdElementWidget::leaveEvent(QEvent* event)
 {
     Q_UNUSED(event)
 
     if (enabled && !m_menu.isVisible() && !freezed) {
-        active = false;
-        _setView();
+        setActive(false);
     }
 }

@@ -1,24 +1,23 @@
 #ifndef CCMDCONVENTER_H
 #define CCMDCONVENTER_H
-#include <QObject>
 #include "ssettings.h"
+#include <QIODevice>
+#include <QObject>
 #include <QQueue>
 #include <QTimer>
-#include <QIODevice>
 
-class CProtocolTransmitter : public QObject
-{
+class CProtocolTransmitter : public QObject {
     Q_OBJECT
 public:
-    CProtocolTransmitter(QIODevice *dev = nullptr, QObject *parent = nullptr);
-    CProtocolTransmitter(QObject *parent = nullptr);
-    ~CProtocolTransmitter() {}
+    CProtocolTransmitter(QIODevice* dev = nullptr, QObject* parent = nullptr);
+    CProtocolTransmitter(QObject* parent = nullptr);
+    ~CProtocolTransmitter() { }
 
-    void setDevice(QIODevice *dev);
+    void setDevice(QIODevice* dev);
     void removeDevice();
 
     void getRequest(ESectionType type);
-    void setRequest(const SSection &section);
+    void setRequest(const SSection& section);
     void serviceRequest(EServiceCommand cmd);
 
 public slots:
@@ -27,15 +26,15 @@ public slots:
 
 signals:
     /// прочитали ответ на get-запрос
-    void s_sectionRead(const SSection &sect);
+    void s_sectionRead(const SSection& sect);
     /// прочитали отладочное инфо
-    void s_debugInfo(const QString &str);
+    void s_debugInfo(const QString& str);
     /// set-запрос SSection подтвержден (все поля <ok>)
-    void s_requestConfirmed(const SSection &sect);
+    void s_requestConfirmed(const SSection& sect);
     /// set-запрос SSection не подтвержден (время ожидания превышено)
-    void s_requestFailed(const SSection &sect);
+    void s_requestFailed(const SSection& sect);
     /// set-запрос SSection не подтвержден (ошибки)
-    void s_requestError(const QList<QString> &errorFields);
+    void s_requestError(const SSection& req);
     /// service-запрос не потвержден
     void s_serviceRequestFailed(QString name);
     /// service-запрос потвержден
@@ -47,12 +46,12 @@ protected:
     /// читает секцию от [section name] до [end] и возвращает все, что внутри
     QByteArray readRawSection(QString sectionName);
     /// заполняет секцию заданного типа  из "сырых" данных
-    void fillSection(const QByteArray &rawSection, SSection &sect);
+    void fillSection(const QByteArray& rawSection, SSection& sect);
     /// обрабатывает все подтверждения (подтверждено, не подтверждено), возвращает true, если
     /// подтверждение соответствует запросу
-    bool processConfirmation(const SSection &request, const SSection &answer);
+    bool processConfirmation(const SSection& request, SSection& answer);
     /// обрабатывает service-подтверждения (подтверждено, не подтверждено)
-    bool processServiceConfirmation(const SSection &request, const SSection &answer);
+    bool processServiceConfirmation(const SSection& request, const SSection& answer);
     ///отправляет следующий в очереди запрос, если устройство доступно
     bool processNextRequest();
     ///ставит запрос в очередь
@@ -61,7 +60,7 @@ protected:
     SSection popQueu();
 
 private:
-    QIODevice *m_device { nullptr };
+    QIODevice* m_device { nullptr };
     /// тут храним последний запрос
     QQueue<SSection> requests;
     bool reqProcessing { false };

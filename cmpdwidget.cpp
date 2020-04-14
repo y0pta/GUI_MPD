@@ -1,7 +1,8 @@
 #include "cmpdwidget.h"
 #include <QDebug>
 
-CMpdWidget::CMpdWidget(QWidget *pwgt, const QString &mainName) : QWidget(pwgt)
+CMpdWidget::CMpdWidget(QWidget* pwgt, const QString& mainName)
+    : QWidget(pwgt)
 {
     setMinimumSize(350, 180);
     qDebug() << "size " << size();
@@ -15,7 +16,7 @@ CMpdWidget::CMpdWidget(QWidget *pwgt, const QString &mainName) : QWidget(pwgt)
 
 void CMpdWidget::elementClicked()
 {
-    auto el = qobject_cast<CMpdElementWidget *>(sender());
+    auto el = qobject_cast<CMpdElementWidget*>(sender());
     emit s_clicked(el->text());
 }
 
@@ -29,7 +30,7 @@ void CMpdWidget::addElements(uint num, QList<QString> names)
         m_elements[name] = new CMpdElementWidget(name, this);
         connect(m_elements[name], &CMpdElementWidget::s_clicked, this, &CMpdWidget::elementClicked);
         connect(m_elements[name], &CMpdElementWidget::s_wantChangeState, this,
-                &CMpdWidget::elementWantChangeState);
+            &CMpdWidget::elementWantChangeState);
     }
     _refreshView();
 }
@@ -38,7 +39,7 @@ void CMpdWidget::eraseElements(QList<QString> names)
 {
     for (auto name : names) {
         disconnect(m_elements[name], &CMpdElementWidget::s_clicked, this,
-                   &CMpdWidget::elementClicked);
+            &CMpdWidget::elementClicked);
         m_elements.remove(name);
     }
     _refreshView();
@@ -54,7 +55,7 @@ void CMpdWidget::setTextName(QString oldName, QString newName)
     }
 }
 
-void CMpdWidget::setMainTextName(const QString &name)
+void CMpdWidget::setMainTextName(const QString& name)
 {
     m_main->setText(name);
 }
@@ -120,15 +121,12 @@ void CMpdWidget::_refreshView()
     }
 }
 
-void CMpdWidget::resizeEvent(QResizeEvent *event) {}
+void CMpdWidget::resizeEvent(QResizeEvent* event) { }
 
 void CMpdWidget::elementWantChangeState(EState st)
 {
-    auto element = qobject_cast<CMpdElementWidget *>(sender());
+    auto element = qobject_cast<CMpdElementWidget*>(sender());
     QString nameEl = m_elements.key(element);
-    if (st == eConnected) {
-        freezeExcept(nameEl);
-    }
     emit s_wantChangeState(nameEl, st);
 }
 
@@ -149,21 +147,10 @@ void CMpdWidget::setEnabled(bool state, QString nameEl)
         m_elements[nameEl]->setEnabled(state);
 }
 
-void CMpdWidget::freezeExcept(QString nameEl)
+void CMpdWidget::setFreeze(bool st)
 {
-    m_main->setFreeze(true);
-    for (auto it = m_elements.begin(); it != m_elements.end(); it++) {
-        if (it.key() == nameEl)
-            m_elements[nameEl]->setActive(true);
-        it.value()->setFreeze(true);
-    }
-}
-
-void CMpdWidget::unfreezeAll()
-{
-    m_main->setEnabled(false);
+    m_main->setEnabled(st);
     for (auto el : m_elements) {
-        el->setFreeze(false);
-        el->setActive(false);
+        el->setFreeze(st);
     }
 }
