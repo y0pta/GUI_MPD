@@ -326,8 +326,9 @@ void CMainWindow::processCommon(const SSection& sect)
 
 void CMainWindow::setSection(const SSection& sect)
 {
-    if (page == eLoading)
+    if (page == eLoading) {
         setPage(eMainPage);
+    }
     switch (sect.getType()) {
     case eStat:
         ui->txt_statistics->append(sect.fields[STAT_TEXT]);
@@ -355,8 +356,13 @@ void CMainWindow::requestConfirmed(const SSection& sect)
 
 void CMainWindow::requestFailed(const SSection& sect)
 {
-    if (page == eLoading)
+    if (page == eLoading) {
+        if (m_serial.isOpen()) {
+            qDebug() << "Port closed";
+            m_serial.close();
+        }
         setPage(eStartPage);
+    }
     if (sect.getType() == eStat) {
         ui->txt_statistics->append("Время ожидания подтверждения превышено");
     } else

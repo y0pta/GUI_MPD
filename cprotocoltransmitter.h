@@ -56,8 +56,10 @@ protected:
     bool processNextRequest();
     ///ставит запрос в очередь
     void pushQueu(const SSection& sect);
-    ///удаляет первый вопрос из очереди
+    ///удаляет первый запрос из очереди
     SSection popQueu();
+    ///первый завопрос из очереди
+    SSection lastQueu();
 
 private:
     QIODevice* m_device { nullptr };

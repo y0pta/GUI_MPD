@@ -93,12 +93,12 @@ void CProtocolTransmitter::serviceRequest(EServiceCommand cmd)
 
 void CProtocolTransmitter::readyRead()
 {
-    // if (reqProcessing) {
+    qDebug() << "Inside readyRead()";
     /// результат обработки последнего запроса
     bool res = true;
     auto lastReq = SSection();
     if (reqProcessing)
-        lastReq = requests.head();
+        lastReq = lastQueu();
 
     /// отделяем всю служебную информацию (все, что не в секции) и узнаем тип следующей
     /// секции пока есть, что читать
@@ -108,9 +108,10 @@ void CProtocolTransmitter::readyRead()
         /// читаем секцию
         auto rawSection = readRawSection(getStr(type));
         /// нечего читать, секция не найдена
-        if (rawSection.size() < 1)
+        if (rawSection.size() < 1) {
+            qDebug() << "Section not recognized";
             return;
-        /// секция есть, заполняем
+        }
         switch (type) {
         case eCommon:
             sect = SCommonSection();
@@ -127,14 +128,18 @@ void CProtocolTransmitter::readyRead()
         }
         fillSection(rawSection, sect);
         /// тип ответа не совпадает с типом запроса, просто выходим
-        if (type != lastReq.getType())
+        if (type != lastReq.getType()) {
+            qDebug() << "Answer and request has different types";
             return;
+        }
 
         /// разделяем подтверждения и ответы на запросы
         if (SSection::isConfirmation(sect)) {
+            qDebug() << "Confirmation received.";
             res = processConfirmation(lastReq, sect);
         } else {
             emit s_sectionRead(sect);
+            qDebug() << "Section received.";
             /// на serial-запрос должно приходить несколько секций, поэтому serial-запрос
             /// завершается по тайм-ауту
             if (lastReq.getType() == eSerial) {
@@ -154,16 +159,15 @@ void CProtocolTransmitter::readyRead()
 void CProtocolTransmitter::requestTimeout()
 {
     s_debugInfo("  Last request time-out");
-    auto request = popQueu();
+    auto request = lastQueu();
     if (request.getType() == eDebug) {
         for (auto it = request.fields.begin(); it != request.fields.end(); it++) {
             if (!it.value().isEmpty())
                 emit s_serviceRequestFailed(it.key());
         }
-    } else if (request.getType() == eSerial)
-        return;
-    else
+    } else if (request.getType() != eSerial)
         emit s_requestFailed(request);
+    popQueu();
 }
 
 /// возвращает имя секции, если дальше есть целая секция
@@ -172,7 +176,12 @@ ESectionType CProtocolTransmitter::separateNoSection()
     while (m_device->size() > 0) {
         /// смотрим, что лежит в буфере (отладочное инфо или секция)
         QByteArray data = m_device->peek(m_device->size());
+        qDebug() << "Buffer: " << data;
         s_debugInfo("Buffer: " + data);
+
+        /// аккуратно, костыли
+        if (data[0] != '[')
+            data.prepend('[');
 
         int posInterruptor = data.indexOf(SECTION_INTERRUPTOR);
         ESectionType typeHeader;
@@ -330,13 +339,19 @@ bool CProtocolTransmitter::processNextRequest()
     }
     /// отправляем запрос
     if (m_device) {
-        qDebug() << "Request sent: " << str;
-        m_device->write(str.toStdString().c_str());
-        s_debugInfo("Request sent: " + str);
-        m_timer.start();
-        return true;
-    } else
-        return false;
+        if (m_device->isOpen()) {
+            qDebug() << "Request sent: " << str;
+            m_device->write(str.toStdString().c_str());
+            s_debugInfo("Request sent: " + str);
+            m_timer.start(TIMEOUT);
+
+            return true;
+        } else {
+            requests.clear();
+            return false;
+        }
+    }
+    return false;
 }
 
 void CProtocolTransmitter::pushQueu(const SSection& sect)
@@ -357,4 +372,12 @@ SSection CProtocolTransmitter::popQueu()
     else
         reqProcessing = false;
     return req;
+}
+
+SSection CProtocolTransmitter::lastQueu()
+{
+    if (requests.size() > 0)
+        return requests.head();
+    else
+        return SSection();
 }
