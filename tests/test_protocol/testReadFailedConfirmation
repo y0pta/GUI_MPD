@@ -1,0 +1,12 @@
+some service infooooo [end]
+Here
+will
+[serial]
+iface: RS-232
+status: <ok>
+baudRate: <ok>
+dataBits: <ok>
+stopBits: <error: invalid stopBits>
+[end]
+be debug info
+

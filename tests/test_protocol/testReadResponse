@@ -1,0 +1,13 @@
+blablabla
+[end]
+[end]
+[serial]
+iface: RS-232
+status: on
+baudRate: 9600
+dataBits: 8
+parity: odd
+unrecognizedinfo
+[end]
+blablabla
+[common]

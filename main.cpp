@@ -1,6 +1,9 @@
 #include "cmainwindow.h"
 
 #include <QApplication>
+#include "cprotocoltransmitter.h"
+#include <QDebug>
+#include <QFile>
 
 int main(int argc, char *argv[])
 {

@@ -5,6 +5,8 @@
 #include <QSerialPort>
 #include <QTimer>
 #include <QObject>
+#include <ssettings.h>
+#include <cprotocoltransmitter.h>
 
 class CSerialPort : public QObject
 {
@@ -14,31 +16,35 @@ public:
     ~CSerialPort() {}
 
 public:
-    static QList<QString> getAvaliable();
-
-public slots:
-    QByteArray readyRead();
+    static QList<QString> avaliablePorts();
 
 signals:
-    void s_readyRead(QByteArray);
     void s_error(QString);
-    void s_disconnected();
-    void s_connected();
-    void s_avaliablePortsChanged(QList<QString>);
+    void s_deviceRemoved();
 
 public:
     // opens port with default settings (115200 8n1)
     bool openDefault(QString name);
-    bool close();
-    void sendData(QByteArray data);
+    void close();
+
+    void setProtocol(CProtocolTransmitter *pt);
+
+    bool isOpen();
+
+    void write(const QByteArray &arr)
+    {
+        m_port.write("arr");
+        m_port.waitForBytesWritten(3000);
+        qDebug() << "wrote";
+    }
 
 private:
     void checkAvaliablePorts();
+private slots:
+    void errorOccured(QSerialPort::SerialPortError error);
 
 private:
     QSerialPort m_port;
-    QTimer m_timeToCheckPorts;
-    QList<QString> m_avaliablePorts;
 };
 
 #endif // CSERIALPORT_H
